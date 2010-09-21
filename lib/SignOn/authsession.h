@@ -81,7 +81,7 @@ namespace SignOn {
         /*!
          * @enum AuthSessionState
          * Codes for the states of the AuthSession object.
-         * @see stateChanged(AuthSession::AuthSessionState state, const QString &message)
+         * @see stateChanged()
          * @todo The order of the states must be synchronized with AuthPluginState enum
          */
         enum AuthSessionState {
@@ -240,10 +240,11 @@ namespace SignOn {
         /*!
          * Provides information about the state of the authentication
          * request.
+         * @see AuthSessionState
          * @param state is the current state of the authentication request.
          * @param message a textual description of the state.
          */
-        void stateChanged(AuthSession::AuthSessionState state, const QString &message);
+        void stateChanged(qint32 state, const QString &message);
 
     private:
         class AuthSessionImpl *impl;

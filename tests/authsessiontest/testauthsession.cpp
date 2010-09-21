@@ -148,7 +148,7 @@ void TestAuthSession::queryMechanisms_existing_method()
 
      QSignalSpy spy(as, SIGNAL(response(const SignOn::SessionData &)));
      QSignalSpy errorCounter(as, SIGNAL(error(const SignOn::Error &)));
-     QSignalSpy stateCounter(as, SIGNAL(stateChanged(AuthSession::AuthSessionState, const QString&)));
+     QSignalSpy stateCounter(as, SIGNAL(stateChanged(qint32, const QString&)));
      QEventLoop loop;
 
      QObject::connect(as, SIGNAL(response(const SignOn::SessionData &)), &loop, SLOT(quit()));
@@ -210,7 +210,7 @@ void TestAuthSession::queryMechanisms_existing_method()
      connect(as, SIGNAL(response(const SignOn::SessionData &)), this, SLOT(response(const SignOn::SessionData &)));
 
      QSignalSpy errorCounter(as, SIGNAL(error(const SignOn::Error &)));
-     QSignalSpy stateCounter(as, SIGNAL(stateChanged(AuthSession::AuthSessionState, const QString&)));
+     QSignalSpy stateCounter(as, SIGNAL(stateChanged(qint32, const QString&)));
      QSignalSpy spy(as, SIGNAL(response(const SignOn::SessionData&)));
      QEventLoop loop;
 
@@ -267,7 +267,7 @@ void TestAuthSession::queryMechanisms_existing_method()
 
      QSignalSpy spyResponse(as, SIGNAL(response(const SignOn::SessionData &)));
      QSignalSpy spyError(as, SIGNAL(error(const SignOn::Error &)));
-     QSignalSpy stateCounter(as, SIGNAL(stateChanged(AuthSession::AuthSessionState, const QString&)));
+     QSignalSpy stateCounter(as, SIGNAL(stateChanged(qint32, const QString&)));
      QEventLoop loop;
 
      QObject::connect(as, SIGNAL(error(const SignOn::Error &)), &loop, SLOT(quit()),  Qt::QueuedConnection);
@@ -303,7 +303,7 @@ void TestAuthSession::queryMechanisms_existing_method()
 
      QSignalSpy spyResponse(as, SIGNAL(response(const SignOn::SessionData&)));
      QSignalSpy spyError(as, SIGNAL(error(const SignOn::Error &)));
-     QSignalSpy stateCounter(as, SIGNAL(stateChanged(AuthSession::AuthSessionState, const QString&)));
+     QSignalSpy stateCounter(as, SIGNAL(stateChanged(qint32, const QString&)));
      QEventLoop loop;
 
      QObject::connect(as, SIGNAL(error(const SignOn::Error &)), &loop, SLOT(quit()),  Qt::QueuedConnection);
@@ -607,7 +607,7 @@ void TestAuthSession::queryMechanisms_existing_method()
        SSO_TEST_CREATE_AUTH_SESSION(as, "ssotest2");
 
        QSignalSpy errorCounter(as, SIGNAL(error(AuthSession::AuthSessionError, const QString&)));
-       QSignalSpy stateCounter(as, SIGNAL(stateChanged(AuthSession::AuthSessionState, const QString&)));
+       QSignalSpy stateCounter(as, SIGNAL(stateChanged(qint32, const QString&)));
        QSignalSpy spy(as, SIGNAL(response(const SessionData&)));
        QEventLoop loop;
 
@@ -656,7 +656,7 @@ void TestAuthSession::queryMechanisms_existing_method()
        g_currentSession = as;
 
        QSignalSpy errorCounter(as, SIGNAL(error(AuthSession::AuthSessionError, const QString&)));
-       QSignalSpy stateCounter(as, SIGNAL(stateChanged(AuthSession::AuthSessionState, const QString&)));
+       QSignalSpy stateCounter(as, SIGNAL(stateChanged(qint32, const QString&)));
        QSignalSpy spy(as, SIGNAL(response(const SessionData&)));
        QEventLoop loop;
 

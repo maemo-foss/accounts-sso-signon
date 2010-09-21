@@ -468,7 +468,7 @@ void AuthSessionImpl::responseSlot(const QVariantMap &sessionDataVa)
 
 void AuthSessionImpl::stateSlot(int state, const QString &message)
 {
-    emit m_parent->stateChanged((AuthSession::AuthSessionState)state, message);
+    emit m_parent->stateChanged(state, message);
 }
 
 void AuthSessionImpl::unregisteredSlot()

@@ -252,7 +252,7 @@ namespace SignonDaemonNS {
                                                 this);
         connect(m_watcher, SIGNAL(finished(QDBusPendingCallWatcher*)), this, SLOT(queryUiSlot(QDBusPendingCallWatcher*)));
 
-        keepInUse();
+        keepInUseForever(true);
         return 0;
     }
 
@@ -459,7 +459,7 @@ namespace SignonDaemonNS {
     void SignonIdentity::queryUiSlot(QDBusPendingCallWatcher *call)
     {
         TRACE();
-        keepInUse();
+        keepInUseForever(false);
 
         if (m_watcher)
             m_watcher->deleteLater();

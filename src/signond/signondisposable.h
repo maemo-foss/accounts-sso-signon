@@ -66,6 +66,13 @@ public:
     void keepInUse() const;
 
     /*!
+     * Mark the object as used. Calling this method causes the inactivity
+     * timer to be set infinite timeout.
+     * @param value use infinite timeout if set true.
+     */
+    void keepInUseForever(bool value = true) const;
+
+    /*!
      * Deletes all disposable object for which the inactivity time has
      * elapsed.
      */
@@ -74,6 +81,7 @@ public:
 private:
     int maxInactivity;
     mutable time_t lastActivity;
+    mutable bool m_forever;
 }; //class SignonDaemon
 
 } //namespace SignonDaemonNS

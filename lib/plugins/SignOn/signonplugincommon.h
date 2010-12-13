@@ -42,8 +42,8 @@
 #ifdef SIGNON_PLUGIN_TRACE
     #include <QDebug>
 
-    #define TRACE() qDebug() << __FILE__ << __LINE__ << __func__ << ":\t"
-    #define BLAME() qCritical() << __FILE__ << __LINE__ << __func__ << ":\t"
+    #define TRACE() qDebug() << __FILE__ << __LINE__ << __func__
+    #define BLAME() qCritical() << __FILE__ << __LINE__ << __func__
 #else
     #define TRACE() if(1) ; else qDebug()
     #define BLAME() if(1) ; else qDebug()

@@ -66,6 +66,7 @@ QMAKE_CXXFLAGS += -fno-exceptions \
     -fno-rtti
 DEFINES += QT_NO_CAST_TO_ASCII \
     QT_NO_CAST_FROM_ASCII
+#Trace defines can be overruled by signond's configuration file `LoggingLevel`
 DEFINES += SIGNOND_TRACE \
     SIGNON_PLUGIN_TRACE
 LIBS += -lcreds \

@@ -27,6 +27,7 @@
 
 //#define SSOUI_TESTS_ENABLED
 
+#include "testauthsession.h"
 #include "testidentityresult.h"
 #include "testauthserviceresult.h"
 
@@ -148,6 +149,9 @@ private Q_SLOTS:
     void response(const SignOn::SessionData &data);
 
 private:
+#ifdef SSOTESTCLIENT_USES_AUTHSESSION
+    TestAuthSession testAuthSession;
+#endif
     QStringList m_tokenList;
     int m_expectedNumberOfMethods;
     QStringList m_expectedMechanisms;

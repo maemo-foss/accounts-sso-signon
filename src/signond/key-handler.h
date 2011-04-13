@@ -27,13 +27,14 @@
 #ifndef SIGNON_KEY_HANDLER_H
 #define SIGNON_KEY_HANDLER_H
 
-#include "cryptomanager.h"
 #include "SignOn/abstract-key-manager.h"
 
 #include <QObject>
 #include <QSet>
 
 namespace SignonDaemonNS {
+
+class CryptoManager;
 
 class KeyHandlerPrivate;
 typedef QList<SignOn::AbstractKeyManager *> KeyManagersList;
@@ -72,6 +73,11 @@ public:
      */
     void initialize(CryptoManager *cryptoManager,
                     const KeyManagersList &keyManagers);
+
+    /*!
+     * @returns The CryptoManager.
+     */
+    CryptoManager *cryptoManager() const;
 
     /*!
      * True if all key managers have been initialized and have started

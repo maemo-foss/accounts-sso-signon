@@ -20,6 +20,7 @@
  * 02110-1301 USA
  */
 
+#include "cryptomanager.h"
 #include "key-handler.h"
 #include "signond-common.h"
 #include <QSet>
@@ -260,6 +261,12 @@ void KeyHandler::initialize(CryptoManager *cryptoManager,
 {
     Q_D(KeyHandler);
     d->initialize(cryptoManager, keyManagers);
+}
+
+CryptoManager *KeyHandler::cryptoManager() const
+{
+    Q_D(const KeyHandler);
+    return d->m_cryptoManager;
 }
 
 bool KeyHandler::isReady() const

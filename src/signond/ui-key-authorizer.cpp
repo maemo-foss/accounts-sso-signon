@@ -81,7 +81,7 @@ void UiKeyAuthorizer::queryKeyAuthorization(const SignOn::Key &key,
         setState(SwapWithAuthorized);
         return;
     } else if (m_state == Idle) {
-        if (keyHandler()->cryptoManager()->fileSystemIsSetup()) {
+        if (!keyHandler()->cryptoManager()->fileSystemIsSetup()) {
             TRACE() << "Secure storage not setup; authorizing key";
             emit keyAuthorizationQueried(key, Approved);
             return;

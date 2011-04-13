@@ -203,13 +203,15 @@ void KeyHandlerPrivate::onKeyInserted(const SignOn::Key key)
 
     m_insertedKeys.insert(key);
 
-    /* The `key in use` check will attempt to mount using the new key if
-       the file system is not already mounted
-    */
-    if (m_cryptoManager->encryptionKeyInUse(key)) {
-        TRACE() << "Key already in use.";
-        if (!m_authorizedKeys.contains(key))
-            m_authorizedKeys.insert(key);
+    if (m_cryptoManager->fileSystemIsSetup()) {
+        /* The `key in use` check will attempt to mount using the new key if
+           the file system is not already mounted
+           */
+        if (m_cryptoManager->encryptionKeyInUse(key)) {
+            TRACE() << "Key already in use.";
+            if (!m_authorizedKeys.contains(key))
+                m_authorizedKeys.insert(key);
+        }
     }
 
     emit q->keyInserted(key);

@@ -20,6 +20,7 @@
  * 02110-1301 USA
  */
 
+#include "cryptomanager.h"
 #include "ui-key-authorizer.h"
 
 using namespace SignonDaemonNS;
@@ -79,6 +80,12 @@ void UiKeyAuthorizer::queryKeyAuthorization(const SignOn::Key &key,
         m_uiAdaptor->notifyNoAuthorizedKeyPresent();
         setState(SwapWithAuthorized);
         return;
+    } else if (m_state == Idle) {
+        if (keyHandler()->cryptoManager()->fileSystemIsSetup()) {
+            TRACE() << "Secure storage not setup; authorizing key";
+            emit keyAuthorizationQueried(key, Approved);
+            return;
+        }
     }
     emit keyAuthorizationQueried(key, Denied);
 }

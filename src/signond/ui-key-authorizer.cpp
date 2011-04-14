@@ -113,6 +113,7 @@ void UiKeyAuthorizer::onKeyInserted(const SignOn::Key key)
 
 void UiKeyAuthorizer::onKeyDisabled(const SignOn::Key key)
 {
+    TRACE();
     if (m_state == SwapWithAuthorized) {
         m_queriedKey = key;
         /* The non authorized key has been removed; we'll now wait for the
@@ -150,12 +151,14 @@ void UiKeyAuthorizer::onLastAuthorizedKeyRemoved(const SignOn::Key key)
 
 void UiKeyAuthorizer::onNoKeyPresentAccepted()
 {
+    TRACE();
     closeUi();
 }
 
 void UiKeyAuthorizer::setState(State state)
 {
     if (m_state == state) return;
+    TRACE() << "State:" << state;
 
     switch (state) {
     case Idle:
@@ -177,6 +180,7 @@ void UiKeyAuthorizer::closeUi()
 
 void UiKeyAuthorizer::onSecureStorageUiRejected()
 {
+    TRACE();
     closeUi();
     setState(Idle);
 }

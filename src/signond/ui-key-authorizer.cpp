@@ -97,7 +97,7 @@ void UiKeyAuthorizer::onKeyInserted(const SignOn::Key key)
         m_uiAdaptor->closeUi();
 
     if (keyHandler()->keyIsAuthorized(key)) {
-        if (m_state == WaitingQuery) {
+        if (m_state == WaitingAuthorized) {
             emit keyAuthorizationQueried(m_queriedKey, Approved);
             /* Notify the user */
             if (m_uiAdaptor)

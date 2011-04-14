@@ -165,6 +165,17 @@ bool CredentialsAccessManager::init(const CAMConfiguration &camConfiguration)
         m_pCryptoFileSystemManager->setFileSystemType(m_CAMConfiguration.m_fileSystemType);
 
         m_keyHandler = new KeyHandler(this);
+
+        m_keyAuthorizer = new UiKeyAuthorizer(m_keyHandler, this);
+        QObject::connect(m_keyAuthorizer,
+                         SIGNAL(keyAuthorizationQueried(const SignOn::Key,int)),
+                         this,
+                         SLOT(onKeyAuthorizationQueried(const SignOn::Key,int)));
+
+        /* These signal connections should be done after instantiating the
+         * KeyAuthorizer, so that the KeyAuthorizer's slot will be called
+         * first (or we could connect to them in queued mode)
+         */
         QObject::connect(m_keyHandler, SIGNAL(ready()),
                          this, SLOT(onKeyHandlerReady()));
         QObject::connect(m_keyHandler, SIGNAL(keyInserted(SignOn::Key)),
@@ -175,13 +186,6 @@ bool CredentialsAccessManager::init(const CAMConfiguration &camConfiguration)
                          SLOT(onLastAuthorizedKeyRemoved(SignOn::Key)));
         QObject::connect(m_keyHandler, SIGNAL(keyRemoved(SignOn::Key)),
                          this, SLOT(onKeyRemoved(SignOn::Key)));
-
-        m_keyAuthorizer = new UiKeyAuthorizer(m_keyHandler, this);
-        QObject::connect(m_keyAuthorizer,
-                         SIGNAL(keyAuthorizationQueried(const SignOn::Key,int)),
-                         this,
-                         SLOT(onKeyAuthorizationQueried(const SignOn::Key,int)));
-
         m_keyHandler->initialize(m_pCryptoFileSystemManager, keyManagers);
     }
 

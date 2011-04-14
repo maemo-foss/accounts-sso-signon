@@ -412,7 +412,7 @@ void CredentialsAccessManager::onKeyAuthorizationQueried(const SignOn::Key key,
             flags |= KeyHandler::FormatStorage;
         }
 
-        if (!m_keyHandler->authorizeKey(key)) {
+        if (!m_keyHandler->authorizeKey(key, flags)) {
             BLAME() << "Authorization failed";
         }
     }

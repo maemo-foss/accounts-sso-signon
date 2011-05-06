@@ -55,22 +55,6 @@ namespace SignOn {
 
     public:
         /*!
-         * @enum ServiceError
-         * Codes for errors that may be reported by AuthService objects.
-         * @deprecated This enum is deprecated. Replaced by Error::ErrorType.
-         */
-        enum ServiceError {
-            UnknownError = 1,               /**< Catch-all for errors not distinguished by another code. */
-            InternalServerError = 2,        /**< Signon Daemon internal error. */
-            InternalCommunicationError = 3, /**< Communication with Signon Daemon error. */
-            PermissionDeniedError = 4,      /**< The operation cannot be performed due to insufficient client permissions. */
-            AuthServiceErr = 100,           /* Placeholder to rearrange enumeration */
-            MethodNotKnownError,            /**< The method with this name is not found. */
-            NotAvailableError,              /**< The service is temporarily unavailable. */
-            InvalidQueryError               /**< Parameters for the query are invalid. */
-        };
-
-        /*!
          * @enum IdentityFilterCriteria
          * Criterias for idetity query filtering.
          * @see AuthService::queryIdentities()

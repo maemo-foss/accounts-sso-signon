@@ -182,7 +182,7 @@ void SignonClient::on_challenge_clicked()
 {
     qDebug("on_challenge_clicked");
     if (!m_identity) {
-        error(Error(SignOn::Identity::CanceledError,
+        error(Error(Error::IdentityNotFound,
                     QLatin1String("Identity not created")));
         return;
     }
@@ -220,7 +220,7 @@ void SignonClient::on_google_clicked()
 {
     qDebug("on_google_clicked");
     if (!m_identity) {
-        error(Error(SignOn::Identity::CanceledError,
+        error(Error(Error::IdentityNotFound,
                     QLatin1String("Identity not created")));
         return;
     }
@@ -246,7 +246,7 @@ void SignonClient::on_verify_clicked()
 {
     qDebug("on_verify_clicked");
     if (!m_identity) {
-        error(Error(SignOn::Identity::CanceledError,
+        error(Error(Error::IdentityNotFound,
                     QLatin1String("Identity not created")));
         return;
     }

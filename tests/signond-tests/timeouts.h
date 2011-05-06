@@ -36,7 +36,7 @@ class TimeoutsTest: public QObject
 
 public Q_SLOTS:
     void credentialsStored(const quint32 id);
-    void identityError(Identity::IdentityError code, const QString &message);
+    void identityError(const SignOn::Error &error);
 
 #if defined(SSO_CI_TESTMANAGEMENT)
      void runAllTests();

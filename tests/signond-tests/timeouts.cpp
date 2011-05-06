@@ -86,9 +86,9 @@ void TimeoutsTest::identityTimeout()
                      this,
                      SLOT(credentialsStored(const quint32)));
     QObject::connect(identity,
-                     SIGNAL(error(Identity::IdentityError,const QString&)),
+                     SIGNAL(error(const SignOn::Error &)),
                      this,
-                     SLOT(identityError(Identity::IdentityError,const QString&)));
+                     SLOT(error(const SignOn::Error &)));
 
     identity->storeCredentials();
 
@@ -150,9 +150,9 @@ void TimeoutsTest::identityRegisterTwice()
                      this,
                      SLOT(credentialsStored(const quint32)));
     QObject::connect(identity,
-                     SIGNAL(error(Identity::IdentityError,const QString&)),
+                     SIGNAL(error(const SignOn::Error &)),
                      this,
-                     SLOT(identityError(Identity::IdentityError,const QString&)));
+                     SLOT(error(const SignOn::Error &)));
 
     identity->storeCredentials();
 
@@ -205,14 +205,11 @@ void TimeoutsTest::identityRegisterTwice()
     QVERIFY(identityAlive(path));
 }
 
-void TimeoutsTest::identityError(Identity::IdentityError code,
-                                 const QString &message)
+void TimeoutsTest::identityError(const SignOn::Error &error)
 {
-    qDebug() << Q_FUNC_INFO << message;
+    qDebug() << Q_FUNC_INFO << error.message();
     QFAIL("Unexpected error!");
     emit finished();
-
-    Q_UNUSED(code);
 }
 
 bool TimeoutsTest::triggerDisposableCleanup()

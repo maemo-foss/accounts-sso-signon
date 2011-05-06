@@ -61,27 +61,6 @@ namespace SignOn {
 
         friend class IdentityImpl;
 
-    public:
-        /*!
-         * @enum IdentityError
-         * Codes for errors that may be reported by Identity objects
-         * @deprecated This enum is deprecated. Replaced by Error::ErrorType.
-         */
-        enum IdentityError {
-            UnknownError = 1,               /**< Catch-all for errors not distinguished by another code. */
-            InternalServerError = 2,        /**< Signon Daemon internal error. */
-            InternalCommunicationError = 3, /**< Communication with Signon Daemon error . */
-            PermissionDeniedError = 4,      /**< The operation cannot be performed due to insufficient client permissions. */
-            IdentityErr = 200,              /* placeholder to rearrange enumeration */
-            MethodNotAvailableError,        /**< The requested mechanism is not available. */
-            NotFoundError,                  /**< The identity matching this Identity object was not found on the service. */
-            StoreFailedError,               /**< Storing credentials failed. */
-            RemoveFailedError,              /**< Removing credentials failed. */
-            SignOutFailedError,             /**< SignOut failed. */
-            CanceledError,                  /**< Operation was canceled by user. */
-            CredentialsNotAvailableError    /** Query fails*/
-        };
-
     protected:
         /*!
          * @internal

@@ -58,31 +58,6 @@ namespace SignOn {
 
     public:
         /*!
-         * @enum AuthSessionError
-         * Codes for errors that may be reported by AuthSession objects
-         * @deprecated This enum is deprecated. Replaced by Error::ErrorType.
-         */
-        enum AuthSessionError {
-            UnknownError = 1,               /**< Catch-all for errors not distinguished by another code. */
-            InternalServerError = 2,        /**< Signon Daemon internal error. */
-            InternalCommunicationError = 3, /**< Communication with Signon Daemon error . */
-            PermissionDeniedError = 4,      /**< The operation cannot be performed due to insufficient client permissions. */
-            AuthSessionErr = 300,           /* placeholder to rearrange enumeration */
-            MechanismNotAvailableError,     /**< The requested mechanism is not available. */
-            MissingDataError,               /**< The SessionData object does not contain necessary information. */
-            InvalidCredentialsError,        /**< The supplied credentials are invalid for the mechanism implementation. */
-            WrongStateError,                /**< An operation method has been called in a wrong state. */
-            OperationNotSupportedError,     /**< The operation is not supported by the mechanism implementation. */
-            NoConnectionError,              /**< No Network connetion. */
-            NetworkError,                   /**< Network connetion failed. */
-            SslError,                       /**< Ssl connetion failed. */
-            RuntimeError,                   /**< Casting SessionData into subclass failed */
-            CanceledError,                  /**< Challenge was canceled. */
-            TimedOutError,                  /**< Challenge was timed out. */
-            UserInteractionError            /**< User interaction dialog failed */
-        };
-
-        /*!
          * @enum AuthSessionState
          * Codes for the states of the AuthSession object.
          * @see stateChanged(AuthSession::AuthSessionState state, const QString &message)

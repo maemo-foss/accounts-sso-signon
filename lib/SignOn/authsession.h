@@ -238,6 +238,13 @@ namespace SignOn {
          */
         void stateChanged(AuthSession::AuthSessionState state, const QString &message);
 
+        /*!
+         * Signals the fact that the session was signed out.
+         * All clients using this authentication session should close any opened
+         * server session upon receiving this signal.
+         */
+        void signedOut();
+
     private:
         class AuthSessionImpl *impl;
     };

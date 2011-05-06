@@ -431,6 +431,9 @@ void AuthSessionImpl::authenticationSlot(const QString &path)
         connect(m_DBusInterface, SIGNAL(unregistered()),
                 this, SLOT(unregisteredSlot()));
 
+        connect(m_DBusInterface, SIGNAL(signedOut()),
+                SLOT(signedOutSlot()));
+
         if (m_operationQueueHandler.queuedOperationsCount() > 0)
             m_operationQueueHandler.execQueuedOperations();
     } else {
@@ -483,4 +486,10 @@ void AuthSessionImpl::unregisteredSlot()
 
     m_isAuthInProcessing = false;
     m_isValid = true;
+}
+
+void AuthSessionImpl::signedOutSlot()
+{
+    //Keep this slot if additional handling is required
+    emit m_parent->signedOut();
 }

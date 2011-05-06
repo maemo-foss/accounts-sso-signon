@@ -71,6 +71,7 @@ namespace SignOn {
         void responseSlot(const QVariantMap &sessionDataVa);
         void stateSlot(int state, const QString &message);
         void unregisteredSlot();
+        void signedOutSlot();
 
     private:
         void send2interface(const QString &operation, const char *slot, const QVariantList &arguments);

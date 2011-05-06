@@ -143,6 +143,8 @@ public:
 
     AuthCache *data(const IdentityId id) const;
     void insert(const CacheId &id, AuthCache *cache);
+    bool isEmpty() const { return size() == 0; }
+    int size() const { return m_cache.size(); }
     void clear();
 
     void authSessionDestroyed(const CacheId &id);
@@ -150,6 +152,7 @@ public:
 private:
     QHash<IdentityId, AuthCache *> m_cache;
     QHash<IdentityId, AuthMethods> m_cachingSessionsMethods;
+    bool internalClearRequest;
 };
 
 typedef AuthCoreCache::AuthCache AuthCache;

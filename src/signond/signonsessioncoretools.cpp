@@ -92,6 +92,7 @@ RequestData::~RequestData()
 AuthCoreCache *AuthCoreCache::m_instance = 0;
 
 AuthCoreCache::AuthCache::AuthCache()
+    : internalClearRequest(false)
 {}
 
 AuthCoreCache::AuthCache::~AuthCache()
@@ -108,6 +109,7 @@ AuthCoreCache::AuthCoreCache(QObject *parent) : QObject(parent)
 
 AuthCoreCache::~AuthCoreCache()
 {
+    internalClearRequest = true;
     clear();
     m_instance = 0;
 }
@@ -158,6 +160,9 @@ void AuthCoreCache::insert(const CacheId &id, AuthCache *cache)
 
 void AuthCoreCache::authSessionDestroyed(const CacheId &id)
 {
+    //Do not clear the cache until the secure storage will have been stabilized.
+    return;
+
     AuthCache *data = m_cache.value(id.first, 0);
     if (data != 0) {
         AuthMethods authMethods = m_cachingSessionsMethods[id.first];
@@ -171,6 +176,9 @@ void AuthCoreCache::authSessionDestroyed(const CacheId &id)
 
 void AuthCoreCache::clear()
 {
+    //Do not clear the cache until the secure storage will have been stabilized.
+    if (!internalClearRequest) return;
+
     QList<IdentityId> keys = m_cache.keys();
     foreach (IdentityId key, keys)
         delete m_cache.take(key);

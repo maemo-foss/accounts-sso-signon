@@ -237,10 +237,11 @@ namespace SignonDaemonNS {
         uiRequest.insert(SSOUI_KEY_MESSAGE, displayMessage);
         uiRequest.insert(SSOUI_KEY_CAPTION, info.caption());
 
+        connect(m_signonui, SIGNAL(dialogQueried(QVariantMap, bool)),
+                SLOT(queryUiReply(QVariantMap, bool)));
+
         TRACE() << "Waiting for reply from signon-ui";
-        QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(m_signonui->queryDialog(uiRequest),
-                                                this);
-        connect(watcher, SIGNAL(finished(QDBusPendingCallWatcher*)), this, SLOT(queryUiSlot(QDBusPendingCallWatcher*)));
+        m_signonui->queryDialog(uiRequest);
 
         setAutoDestruct(false);
         return 0;
@@ -306,10 +307,9 @@ namespace SignonDaemonNS {
         uiRequest.insert(SSOUI_KEY_CAPTION, info.caption());
 
         TRACE() << "Waiting for reply from signon-ui";
-        QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(
-                m_signonui->queryDialog(uiRequest), this);
-        connect(watcher, SIGNAL(finished(QDBusPendingCallWatcher*)), this,
-                SLOT(verifyUiSlot(QDBusPendingCallWatcher*)));
+        m_signonui->queryDialog(uiRequest);
+        connect(m_signonui, SIGNAL(dialogQueried(QVariantMap, bool)),
+                SLOT(verifyUiReply(QVariantMap, bool)));
 
         setAutoDestruct(false);
         return false;
@@ -555,23 +555,18 @@ namespace SignonDaemonNS {
         return m_id;
     }
 
-    void SignonIdentity::queryUiSlot(QDBusPendingCallWatcher *call)
+    void SignonIdentity::queryUiReply(const QVariantMap &resultParameters,
+                                      bool dbusErrorOccurred)
     {
         TRACE();
+        m_signonui->disconnect();
         setAutoDestruct(true);
 
         QDBusMessage errReply;
-        QDBusPendingReply<QVariantMap> reply;
-        if (call != NULL) {
-            reply = *call;
-            call->deleteLater();
-        }
-        QVariantMap resultParameters;
-        if (!reply.isError() && reply.count()) {
-            resultParameters = reply.argumentAt<0>();
-        } else {
-            errReply = m_message.createErrorReply(SIGNOND_IDENTITY_OPERATION_CANCELED_ERR_NAME,
-                    SIGNOND_IDENTITY_OPERATION_CANCELED_ERR_STR);
+        if (dbusErrorOccurred) {
+            errReply = m_message.createErrorReply(
+                SIGNOND_IDENTITY_OPERATION_CANCELED_ERR_NAME,
+                SIGNOND_IDENTITY_OPERATION_CANCELED_ERR_STR);
             SIGNOND_BUS.send(errReply);
             return;
         }
@@ -633,23 +628,18 @@ namespace SignonDaemonNS {
         return;
     }
 
-    void SignonIdentity::verifyUiSlot(QDBusPendingCallWatcher *call)
+    void SignonIdentity::verifyUiReply(const QVariantMap &resultParameters,
+                                       bool dbusErrorOccurred)
     {
         TRACE();
+        m_signonui->disconnect();
         setAutoDestruct(true);
 
         QDBusMessage errReply;
-        QDBusPendingReply<QVariantMap> reply;
-        if (call != NULL) {
-            reply = *call;
-            call->deleteLater();
-        }
-        QVariantMap resultParameters;
-        if (!reply.isError() && reply.count()) {
-            resultParameters = reply.argumentAt<0>();
-        } else {
-            errReply = m_message.createErrorReply(SIGNOND_IDENTITY_OPERATION_CANCELED_ERR_NAME,
-                    SIGNOND_IDENTITY_OPERATION_CANCELED_ERR_STR);
+        if (dbusErrorOccurred) {
+            errReply = m_message.createErrorReply(
+                SIGNOND_IDENTITY_OPERATION_CANCELED_ERR_NAME,
+                SIGNOND_IDENTITY_OPERATION_CANCELED_ERR_STR);
             SIGNOND_BUS.send(errReply);
             return;
         }

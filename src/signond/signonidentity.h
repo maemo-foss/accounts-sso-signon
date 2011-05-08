@@ -82,8 +82,10 @@ namespace SignonDaemonNS {
                                  const QStringList &realms,
                                  const QStringList &accessControlList,
                                  const int type);
-        void queryUiSlot(QDBusPendingCallWatcher *call);
-        void verifyUiSlot(QDBusPendingCallWatcher *call);
+        void queryUiReply(const QVariantMap &resultParameters,
+                          bool dbusErrorOccurred);
+        void verifyUiReply(const QVariantMap &resultparameters,
+                           bool dbusErrorOccurred);
     Q_SIGNALS:
         void unregistered();
         //TODO - split this into the 3 separate signals(updated, removed, signed out)

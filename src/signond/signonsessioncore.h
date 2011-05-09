@@ -74,9 +74,9 @@ class SignonDaemon;
                      const QDBusMessage &message,
                      const QVariantMap &sessionDataVa,
                      const QString &mechanism,
-                     const QString &cancelKey);
+                     const QString &sessionKey);
 
-        void cancel(const QString &cancelKey);
+        void cancel(const QString &sessionKey);
         void setId(quint32 id);
 
         /* When the credentials system is ready, session processing will begin.
@@ -93,12 +93,12 @@ class SignonDaemon;
     private Q_SLOTS:
         void startNewRequest();
 
-        void processResultReply(const QString &cancelKey, const QVariantMap &data);
-        void processStore(const QString &cancelKey, const QVariantMap &data);
-        void processUiRequest(const QString &cancelKey, const QVariantMap &data);
-        void processRefreshRequest(const QString &cancelKey, const QVariantMap &data);
-        void processError(const QString &cancelKey, int err, const QString &message);
-        void stateChangedSlot(const QString &cancelKey, int state, const QString &message);
+        void processResultReply(const QString &sessionKey, const QVariantMap &data);
+        void processStore(const QString &sessionKey, const QVariantMap &data);
+        void processUiRequest(const QString &sessionKey, const QVariantMap &data);
+        void processRefreshRequest(const QString &sessionKey, const QVariantMap &data);
+        void processError(const QString &sessionKey, int err, const QString &message);
+        void stateChangedSlot(const QString &sessionKey, int state, const QString &message);
 
         void queryUiReply(const QVariantMap &resultParameters,
                           bool dbusErrorOccurred);
@@ -116,11 +116,11 @@ class SignonDaemon;
 
     private:
         PluginProxy *m_plugin;
-        QQueue<RequestData> m_listOfRequests;
+        QQueue<RequestData> m_requestsQueue;
         SignonUiAdaptor *m_signonui;
         SignOnCrypto::Encryptor *m_encryptor;
 
-        QString m_canceled;
+        QString m_sessionKey;
 
         quint32 m_id;
         QString m_method;

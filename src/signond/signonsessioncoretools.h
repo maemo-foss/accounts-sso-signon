@@ -75,7 +75,7 @@ struct RequestData
                 const QDBusMessage &msg,
                 const QVariantMap &params,
                 const QString &mechanism,
-                const QString &cancelKey);
+                const QString &sessionKey);
 
     RequestData(const RequestData &other);
     ~RequestData();
@@ -85,7 +85,7 @@ public:
     QDBusMessage m_msg;
     QVariantMap m_params;
     QString m_mechanism;
-    QString m_cancelKey;
+    QString m_sessionKey;
 };
 
 /*!

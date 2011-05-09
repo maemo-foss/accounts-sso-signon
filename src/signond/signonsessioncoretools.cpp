@@ -68,12 +68,12 @@ RequestData::RequestData(const QDBusConnection &conn,
                          const QDBusMessage &msg,
                          const QVariantMap &params,
                          const QString &mechanism,
-                         const QString &cancelKey)
+                         const QString &sessionKey)
     : m_conn(conn),
       m_msg(msg),
       m_params(params),
       m_mechanism(mechanism),
-      m_cancelKey(cancelKey)
+      m_sessionKey(sessionKey)
 {}
 
 RequestData::RequestData(const RequestData &other)
@@ -81,7 +81,7 @@ RequestData::RequestData(const RequestData &other)
       m_msg(other.m_msg),
       m_params(other.m_params),
       m_mechanism(other.m_mechanism),
-      m_cancelKey(other.m_cancelKey)
+      m_sessionKey(other.m_sessionKey)
 {}
 
 RequestData::~RequestData()

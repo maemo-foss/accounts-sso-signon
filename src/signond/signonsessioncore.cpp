@@ -243,10 +243,10 @@ QStringList SignonSessionCore::queryAvailableMechanisms(const QStringList &wante
 }
 
 void SignonSessionCore::process(const QDBusConnection &connection,
-                                 const QDBusMessage &message,
-                                 const QVariantMap &sessionDataVa,
-                                 const QString &mechanism,
-                                 const QString &cancelKey)
+                                const QDBusMessage &message,
+                                const QVariantMap &sessionDataVa,
+                                const QString &mechanism,
+                                const QString &sessionKey)
 {
     keepInUse();
     if (m_encryptor->isVariantMapEncrypted(sessionDataVa)) {
@@ -260,58 +260,57 @@ void SignonSessionCore::process(const QDBusConnection &connection,
                        QString::fromLatin1("Failed to decrypt incoming message"));
             return;
         }
-        m_listOfRequests.enqueue(RequestData(connection,
-                                             message,
-                                             decodedData,
-                                             mechanism,
-                                             cancelKey));
+        m_requestsQueue.enqueue(RequestData(connection,
+                                            message,
+                                            decodedData,
+                                            mechanism,
+                                            sessionKey));
     } else {
-        m_listOfRequests.enqueue(RequestData(connection,
-                                             message,
-                                             sessionDataVa,
-                                             mechanism,
-                                             cancelKey));
+        m_requestsQueue.enqueue(RequestData(connection,
+                                            message,
+                                            sessionDataVa,
+                                            mechanism,
+                                            sessionKey));
     }
 
     if (CredentialsAccessManager::instance()->isCredentialsSystemReady())
         QMetaObject::invokeMethod(this, "startNewRequest", Qt::QueuedConnection);
 }
 
-void SignonSessionCore::cancel(const QString &cancelKey)
+void SignonSessionCore::cancel(const QString &sessionKey)
 {
     TRACE();
 
     int requestIndex;
-    for (requestIndex = 0; requestIndex < m_listOfRequests.size(); requestIndex++) {
-        if (m_listOfRequests.at(requestIndex).m_cancelKey == cancelKey)
+    for (requestIndex = 0; requestIndex < m_requestsQueue.size(); requestIndex++) {
+        if (m_requestsQueue.at(requestIndex).m_sessionKey == sessionKey)
             break;
     }
 
     TRACE() << "The request is found with index " << requestIndex;
 
-    if (requestIndex < m_listOfRequests.size()) {
+    if (requestIndex < m_requestsQueue.size()) {
         if (requestIndex == 0) {
-            m_canceled = cancelKey;
+            m_sessionKey = sessionKey;
             m_plugin->cancel();
 
             if (m_signonui->isBusy())
-                m_signonui->cancelDialog(cancelKey);
+                m_signonui->cancelDialog(sessionKey);
         }
 
         /*
-         * We must let to the m_listOfRequests to have the canceled request data
-         * in order to delay the next request execution until the actual cancelation
-         * will happen. We will know about that precisely: plugin must reply via
-         * resultSlot or via errorSlot.
+         * If the request to be canceled is the 1st one in the processing queue,
+         * do not remove it, as the processing mechanism will handle it at the
+         * authentication plugin reply time.
          * */
         RequestData rd((requestIndex == 0 ?
-                        m_listOfRequests.head() :
-                        m_listOfRequests.takeAt(requestIndex)));
+                        m_requestsQueue.head() :
+                        m_requestsQueue.takeAt(requestIndex)));
 
         QDBusMessage errReply = rd.m_msg.createErrorReply(SIGNOND_SESSION_CANCELED_ERR_NAME,
                                                           SIGNOND_SESSION_CANCELED_ERR_STR);
         rd.m_conn.send(errReply);
-        TRACE() << "Size of the queue is " << m_listOfRequests.size();
+        TRACE() << "Size of the queue is " << m_requestsQueue.size();
     }
 }
 
@@ -343,12 +342,12 @@ void SignonSessionCore::setId(quint32 id)
 void SignonSessionCore::startProcess()
 {
 
-    TRACE() << "the number of requests is : " << m_listOfRequests.length();
+    TRACE() << "the number of requests is : " << m_requestsQueue.length();
 
     keepInUse();
 
-    RequestData data = m_listOfRequests.head();
-    QVariantMap parameters = data.m_params;
+    RequestData requestData = m_requestsQueue.head();
+    QVariantMap parameters = requestData.m_params;
 
     if (m_id) {
         CredentialsDB *db = CredentialsAccessManager::instance()->credentialsDB();
@@ -382,7 +381,7 @@ void SignonSessionCore::startProcess()
                 parameters[SSO_KEY_USERNAME] = info.userName();
             }
 
-            pid_t pid = pidOfContext(data.m_conn, data.m_msg);
+            pid_t pid = pidOfContext(requestData.m_conn, requestData.m_msg);
             QSet<QString> clientTokenSet = AccessControlManager::accessTokens(pid).toSet();
             QSet<QString> identityAclTokenSet = info.accessControlList().toSet();
             QSet<QString> paramsTokenSet = clientTokenSet.intersect(identityAclTokenSet);
@@ -423,14 +422,14 @@ void SignonSessionCore::startProcess()
     m_tmpUsername = parameters[SSO_KEY_USERNAME].toString();
     m_tmpPassword = parameters[SSO_KEY_PASSWORD].toString();
 
-    if (!m_plugin->process(data.m_cancelKey, parameters, data.m_mechanism)) {
-        QDBusMessage errReply = data.m_msg.createErrorReply(SIGNOND_RUNTIME_ERR_NAME,
-                                                            SIGNOND_RUNTIME_ERR_STR);
-        data.m_conn.send(errReply);
-        m_listOfRequests.removeFirst();
+    if (!m_plugin->process(requestData.m_sessionKey, parameters, requestData.m_mechanism)) {
+        QDBusMessage errReply = requestData.m_msg.createErrorReply(SIGNOND_RUNTIME_ERR_NAME,
+                                                                   SIGNOND_RUNTIME_ERR_STR);
+        requestData.m_conn.send(errReply);
+        m_requestsQueue.removeFirst();
         QMetaObject::invokeMethod(this, "startNewRequest", Qt::QueuedConnection);
     } else
-        stateChangedSlot(data.m_cancelKey, SignOn::SessionStarted, QLatin1String("The request is started successfully"));
+        stateChangedSlot(requestData.m_sessionKey, SignOn::SessionStarted, QLatin1String("The request is started successfully"));
 }
 
 void SignonSessionCore::replyError(const QDBusConnection &conn, const QDBusMessage &msg, int err, const QString &message)
@@ -584,18 +583,18 @@ void SignonSessionCore::processStoreOperation(const StoreOperation &operation)
     }
 }
 
-void SignonSessionCore::processResultReply(const QString &cancelKey, const QVariantMap &data)
+void SignonSessionCore::processResultReply(const QString &sessionKey, const QVariantMap &data)
 {
     TRACE();
 
     keepInUse();
 
-    if (!m_listOfRequests.size())
+    if (!m_requestsQueue.size())
         return;
 
-    RequestData rd = m_listOfRequests.dequeue();
+    RequestData rd = m_requestsQueue.dequeue();
 
-    if (cancelKey != m_canceled) {
+    if (sessionKey != m_sessionKey) {
         QVariantList arguments;
         QVariantMap filteredData = filterVariantMap(data);
 
@@ -675,20 +674,18 @@ void SignonSessionCore::processResultReply(const QString &cancelKey, const QVari
             rd.m_conn.send(rd.m_msg.createReply(arguments));
         }
 
-        m_canceled = QString();
-
         if (m_signonui->isBusy())
-            m_signonui->cancelDialog(rd.m_cancelKey);
+            m_signonui->cancelDialog(rd.m_sessionKey);
 
         m_queryCredsUiDisplayed = false;
     }
-    m_canceled = QString();
+    m_sessionKey.clear();
     QMetaObject::invokeMethod(this, "startNewRequest", Qt::QueuedConnection);
 }
 
-void SignonSessionCore::processStore(const QString &cancelKey, const QVariantMap &data)
+void SignonSessionCore::processStore(const QString &sessionKey, const QVariantMap &data)
 {
-    Q_UNUSED(cancelKey);
+    Q_UNUSED(sessionKey);
     TRACE();
 
     keepInUse();
@@ -752,25 +749,25 @@ void SignonSessionCore::processStore(const QString &cancelKey, const QVariantMap
     return;
 }
 
-void SignonSessionCore::processUiRequest(const QString &cancelKey, const QVariantMap &data)
+void SignonSessionCore::processUiRequest(const QString &sessionKey, const QVariantMap &data)
 {
     TRACE();
 
     keepInUse();
 
-    if (cancelKey != m_canceled && m_listOfRequests.size()) {
-        QString uiRequestId = m_listOfRequests.head().m_cancelKey;
+    if (sessionKey != m_sessionKey && m_requestsQueue.size()) {
+        QString uiRequestId = m_requestsQueue.head().m_sessionKey;
 
         if (m_signonui->isBusy())
             m_signonui->cancelDialog(uiRequestId);
 
-        m_listOfRequests.head().m_params = filterVariantMap(data);
-        m_listOfRequests.head().m_params[SSOUI_KEY_REQUESTID] = uiRequestId;
+        m_requestsQueue.head().m_params = filterVariantMap(data);
+        m_requestsQueue.head().m_params[SSOUI_KEY_REQUESTID] = uiRequestId;
 
         if (m_id == SIGNOND_NEW_IDENTITY)
-            m_listOfRequests.head().m_params[SSOUI_KEY_STORED_IDENTITY] = false;
+            m_requestsQueue.head().m_params[SSOUI_KEY_STORED_IDENTITY] = false;
         else
-            m_listOfRequests.head().m_params[SSOUI_KEY_STORED_IDENTITY] = true;
+            m_requestsQueue.head().m_params[SSOUI_KEY_STORED_IDENTITY] = true;
 
         CredentialsAccessManager *camManager = CredentialsAccessManager::instance();
         CredentialsDB *db = camManager->credentialsDB();
@@ -781,7 +778,7 @@ void SignonSessionCore::processUiRequest(const QString &cancelKey, const QVarian
             TRACE() << "Caption missing";
             if (m_id != SIGNOND_NEW_IDENTITY) {
                 SignonIdentityInfo info = db->credentials(m_id);
-                m_listOfRequests.head().m_params.insert(SSO_KEY_CAPTION, info.caption());
+                m_requestsQueue.head().m_params.insert(SSO_KEY_CAPTION, info.caption());
                 TRACE() << "Got caption: " << info.caption();
             }
         }
@@ -796,61 +793,61 @@ void SignonSessionCore::processUiRequest(const QString &cancelKey, const QVarian
             if (!camManager->keysAvailable()) {
                 TRACE() << "Secrets DB not available."
                         << "CAM has no keys available. Informing signon-ui.";
-                m_listOfRequests.head().m_params[
+                m_requestsQueue.head().m_params[
                     SSOUI_KEY_STORAGE_KEYS_UNAVAILABLE] = true;
             }
         }
 
-        m_signonui->queryDialog(m_listOfRequests.head().m_params);
+        m_signonui->queryDialog(m_requestsQueue.head().m_params);
     }
 }
 
-void SignonSessionCore::processRefreshRequest(const QString &cancelKey, const QVariantMap &data)
+void SignonSessionCore::processRefreshRequest(const QString &sessionKey, const QVariantMap &data)
 {
     TRACE();
 
     keepInUse();
 
-    if (cancelKey != m_canceled && m_listOfRequests.size()) {
-        QString uiRequestId = m_listOfRequests.head().m_cancelKey;
+    if (sessionKey != m_sessionKey && m_requestsQueue.size()) {
+        QString uiRequestId = m_requestsQueue.head().m_sessionKey;
 
         if (m_signonui->isBusy())
             m_signonui->cancelDialog(uiRequestId);
 
-        m_listOfRequests.head().m_params = filterVariantMap(data);
-        m_signonui->refreshDialog(m_listOfRequests.head().m_params);
+        m_requestsQueue.head().m_params = filterVariantMap(data);
+        m_signonui->refreshDialog(m_requestsQueue.head().m_params);
     }
 }
 
-void SignonSessionCore::processError(const QString &cancelKey, int err, const QString &message)
+void SignonSessionCore::processError(const QString &sessionKey, int err, const QString &message)
 {
     TRACE();
     keepInUse();
     m_tmpUsername.clear();
     m_tmpPassword.clear();
 
-    if (!m_listOfRequests.size())
+    if (!m_requestsQueue.size())
         return;
 
-    RequestData rd = m_listOfRequests.dequeue();
+    RequestData rd = m_requestsQueue.dequeue();
 
-    if (cancelKey != m_canceled) {
+    if (sessionKey != m_sessionKey) {
         replyError(rd.m_conn, rd.m_msg, err, message);
 
         if (m_signonui->isBusy()) {
-            m_signonui->cancelDialog(rd.m_cancelKey);
+            m_signonui->cancelDialog(rd.m_sessionKey);
         }
     }
 
-    m_canceled = QString();
+    m_sessionKey.clear();
     QMetaObject::invokeMethod(this, "startNewRequest", Qt::QueuedConnection);
 }
 
-void SignonSessionCore::stateChangedSlot(const QString &cancelKey, int state, const QString &message)
+void SignonSessionCore::stateChangedSlot(const QString &sessionKey, int state, const QString &message)
 {
-    if (cancelKey != m_canceled && m_listOfRequests.size()) {
-        RequestData rd = m_listOfRequests.head();
-        emit stateChanged(rd.m_cancelKey, (int)state, message);
+    if (sessionKey != m_sessionKey && m_requestsQueue.size()) {
+        RequestData rd = m_requestsQueue.head();
+        emit stateChanged(rd.m_sessionKey, (int)state, message);
     }
 
     keepInUse();
@@ -890,11 +887,11 @@ void SignonSessionCore::queryUiReply(const QVariantMap &parameters,
     keepInUse();
 
     bool isRequestToRefresh = false;
-    Q_ASSERT_X( m_listOfRequests.size() != 0, __func__, "queue of requests is empty");
+    Q_ASSERT_X( m_requestsQueue.size() != 0, __func__, "queue of requests is empty");
 
     QVariantMap resultParameters(parameters);
     if (dbusErrorOccurred) {
-        m_listOfRequests.head().m_params.insert(
+        m_requestsQueue.head().m_params.insert(
             SSOUI_KEY_ERROR, (int)SignOn::QUERY_ERROR_NO_SIGNONUI);
     } else {
         if (resultParameters.contains(SSOUI_KEY_REFRESH)) {
@@ -902,7 +899,7 @@ void SignonSessionCore::queryUiReply(const QVariantMap &parameters,
             resultParameters.remove(SSOUI_KEY_REFRESH);
         }
 
-        m_listOfRequests.head().m_params = resultParameters;
+        m_requestsQueue.head().m_params = resultParameters;
 
         /* If the query ui was canceled or any other error occurred
          * do not set this flag to true. */
@@ -915,25 +912,25 @@ void SignonSessionCore::queryUiReply(const QVariantMap &parameters,
         }
     }
 
-    if (m_listOfRequests.head().m_cancelKey != m_canceled) {
+    if (m_requestsQueue.head().m_sessionKey != m_sessionKey) {
         /* Temporary caching, if credentials are valid
          * this data will be effectively cached */
-        m_tmpUsername = m_listOfRequests.head().m_params.value(
+        m_tmpUsername = m_requestsQueue.head().m_params.value(
             SSO_KEY_USERNAME, QVariant()).toString();
-        m_tmpPassword = m_listOfRequests.head().m_params.value(
+        m_tmpPassword = m_requestsQueue.head().m_params.value(
             SSO_KEY_PASSWORD, QVariant()).toString();
 
         if (isRequestToRefresh) {
             TRACE() << "REFRESH IS REQUIRED";
 
-            m_listOfRequests.head().m_params.remove(SSOUI_KEY_REFRESH);
-            m_plugin->processRefresh(m_listOfRequests.head().m_cancelKey,
-                                     m_listOfRequests.head().m_params);
+            m_requestsQueue.head().m_params.remove(SSOUI_KEY_REFRESH);
+            m_plugin->processRefresh(m_requestsQueue.head().m_sessionKey,
+                                     m_requestsQueue.head().m_params);
         } else {
-            if (m_listOfRequests.head().m_params.contains(SSO_KEY_PASSWORD))
-                m_passwordUpdate = m_listOfRequests.head().m_params[SSO_KEY_PASSWORD].toString();
-            m_plugin->processUi(m_listOfRequests.head().m_cancelKey,
-                                m_listOfRequests.head().m_params);
+            if (m_requestsQueue.head().m_params.contains(SSO_KEY_PASSWORD))
+                m_passwordUpdate = m_requestsQueue.head().m_params[SSO_KEY_PASSWORD].toString();
+            m_plugin->processUi(m_requestsQueue.head().m_sessionKey,
+                                m_requestsQueue.head().m_params);
         }
     }
 }
@@ -943,7 +940,7 @@ void SignonSessionCore::startNewRequest()
     keepInUse();
 
     // there is no request
-    if (!m_listOfRequests.length()) {
+    if (!m_requestsQueue.length()) {
         TRACE() << "the data queue is EMPTY!!!";
         return;
     }

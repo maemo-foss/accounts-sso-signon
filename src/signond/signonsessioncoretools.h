@@ -75,7 +75,8 @@ struct RequestData
                 const QDBusMessage &msg,
                 const QVariantMap &params,
                 const QString &mechanism,
-                const QString &sessionKey);
+                const QString &sessionKey,
+                const pid_t peerPid);
 
     RequestData(const RequestData &other);
     ~RequestData();
@@ -86,6 +87,7 @@ public:
     QVariantMap m_params;
     QString m_mechanism;
     QString m_sessionKey;
+    pid_t m_peerPid;
 };
 
 /*!

@@ -68,12 +68,14 @@ RequestData::RequestData(const QDBusConnection &conn,
                          const QDBusMessage &msg,
                          const QVariantMap &params,
                          const QString &mechanism,
-                         const QString &sessionKey)
+                         const QString &sessionKey,
+                         const pid_t peerPid)
     : m_conn(conn),
       m_msg(msg),
       m_params(params),
       m_mechanism(mechanism),
-      m_sessionKey(sessionKey)
+      m_sessionKey(sessionKey),
+      m_peerPid(peerPid)
 {}
 
 RequestData::RequestData(const RequestData &other)
@@ -81,7 +83,8 @@ RequestData::RequestData(const RequestData &other)
       m_msg(other.m_msg),
       m_params(other.m_params),
       m_mechanism(other.m_mechanism),
-      m_sessionKey(other.m_sessionKey)
+      m_sessionKey(other.m_sessionKey),
+      m_peerPid(other.m_peerPid)
 {}
 
 RequestData::~RequestData()

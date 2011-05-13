@@ -69,13 +69,7 @@ class SignonDaemon;
 
     public Q_SLOTS:
         QStringList queryAvailableMechanisms(const QStringList &wantedMechanisms);
-
-        void process(const QDBusConnection &connection,
-                     const QDBusMessage &message,
-                     const QVariantMap &sessionDataVa,
-                     const QString &mechanism,
-                     const QString &sessionKey);
-
+        void process(const RequestData &request);
         void cancel(const QString &sessionKey);
         void setId(quint32 id);
 
@@ -113,6 +107,13 @@ class SignonDaemon;
         void startProcess();
         void replyError(const QDBusConnection &conn, const QDBusMessage &msg, int err, const QString &message);
         void processStoreOperation(const StoreOperation &operation);
+        QVariantMap encryptData(const QVariantMap &data,
+                                const pid_t pid,
+                                bool &isOk);
+        QVariantMap tryDecryptData(const QVariantMap &data,
+                                   const pid_t pid,
+                                   bool &isOk);
+
 
     private:
         PluginProxy *m_plugin;

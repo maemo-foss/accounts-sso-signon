@@ -75,11 +75,6 @@ static QString sessionName(const quint32 id, const QString &method)
    return QString::number(id) + QLatin1String("+") + method;
 }
 
-static pid_t pidOfContext(const QDBusConnection &connection, const QDBusMessage &message)
-{
-    return connection.interface()->servicePid(message.service()).value();
-}
-
 SignonSessionCore::SignonSessionCore(quint32 id,
                                      const QString &method,
                                      int timeout,
@@ -246,36 +241,21 @@ QStringList SignonSessionCore::queryAvailableMechanisms(const QStringList &wante
     return m_plugin->mechanisms().toSet().intersect(wantedMechanisms.toSet()).toList();
 }
 
-void SignonSessionCore::process(const QDBusConnection &connection,
-                                const QDBusMessage &message,
-                                const QVariantMap &sessionDataVa,
-                                const QString &mechanism,
-                                const QString &sessionKey)
+void SignonSessionCore::process(const RequestData &request)
 {
     keepInUse();
-    if (m_encryptor->isVariantMapEncrypted(sessionDataVa)) {
-        pid_t pid = pidOfContext(connection, message);
-        QVariantMap decodedData(m_encryptor->
-                                decodeVariantMap(sessionDataVa, pid));
-        if (m_encryptor->status() != Encryptor::Ok) {
-            replyError(connection,
-                       message,
-                       Error::EncryptionFailure,
-                       QString::fromLatin1("Failed to decrypt incoming message"));
-            return;
-        }
-        m_requestsQueue.enqueue(RequestData(connection,
-                                            message,
-                                            decodedData,
-                                            mechanism,
-                                            sessionKey));
-    } else {
-        m_requestsQueue.enqueue(RequestData(connection,
-                                            message,
-                                            sessionDataVa,
-                                            mechanism,
-                                            sessionKey));
+    bool isOk;
+    QVariantMap data = tryDecryptData(request.m_params, request.m_peerPid, isOk);
+    if (!isOk) {
+        replyError(request.m_conn,
+                   request.m_msg,
+                   Error::EncryptionFailure,
+                   QString::fromLatin1("Failed to decrypt incoming message"));
+        return;
     }
+    (const_cast<RequestData *>(&request))->m_params = data;
+
+    m_requestsQueue.enqueue(request);
 
     if (CredentialsAccessManager::instance()->isCredentialsSystemReady())
         QMetaObject::invokeMethod(this, tryProcessRequestMethod, Qt::QueuedConnection);
@@ -345,7 +325,6 @@ void SignonSessionCore::setId(quint32 id)
 
 void SignonSessionCore::startProcess()
 {
-
     TRACE() << "the number of requests is : " << m_requestsQueue.length();
 
     keepInUse();
@@ -385,8 +364,8 @@ void SignonSessionCore::startProcess()
                 parameters[SSO_KEY_USERNAME] = info.userName();
             }
 
-            pid_t pid = pidOfContext(requestData.m_conn, requestData.m_msg);
-            QSet<QString> clientTokenSet = AccessControlManager::accessTokens(pid).toSet();
+            QSet<QString> clientTokenSet = AccessControlManager::accessTokens(
+                requestData.m_peerPid).toSet();
             QSet<QString> identityAclTokenSet = info.accessControlList().toSet();
             QSet<QString> paramsTokenSet = clientTokenSet.intersect(identityAclTokenSet);
 
@@ -664,18 +643,18 @@ void SignonSessionCore::processResultReply(const QString &sessionKey, const QVar
             && filteredData.contains(SSO_KEY_PASSWORD))
             filteredData.remove(SSO_KEY_PASSWORD);
 
-        pid_t pid = pidOfContext(rd.m_conn, rd.m_msg);
-        QVariantMap encodedData(m_encryptor->
-                                encodeVariantMap(filteredData, pid));
-        if (m_encryptor->status() != Encryptor::Ok) {
+        bool isOk;
+        QVariantMap encryptedData = encryptData(filteredData, rd.m_peerPid, isOk);
+
+        if (isOk) {
+            QVariantList replyArguments;
+            replyArguments << encryptedData;
+            rd.m_conn.send(rd.m_msg.createReply(replyArguments));
+        } else {
             replyError(rd.m_conn,
                        rd.m_msg,
                        Error::EncryptionFailure,
                        QString::fromLatin1("Failed to encrypt outgoing message"));
-        } else {
-            encodedData = filterVariantMap(encodedData);
-            arguments << encodedData;
-            rd.m_conn.send(rd.m_msg.createReply(arguments));
         }
 
         if (m_signonui->isBusy())
@@ -985,4 +964,34 @@ void SignonSessionCore::destroy()
 void SignonSessionCore::credentialsSystemReady()
 {
     QMetaObject::invokeMethod(this, tryProcessRequestMethod, Qt::QueuedConnection);
+}
+
+QVariantMap SignonSessionCore::encryptData(const QVariantMap &data,
+                                           const pid_t pid,
+                                           bool &isOk)
+{
+    isOk = true;
+    QVariantMap encodedData = m_encryptor->encodeVariantMap(data, pid);
+    if (m_encryptor->status() != Encryptor::Ok) {
+        isOk = false;
+    } else {
+        encodedData = filterVariantMap(encodedData);
+    }
+    return encodedData;
+}
+
+QVariantMap SignonSessionCore::tryDecryptData(const QVariantMap &data,
+                                              const pid_t pid,
+                                              bool &isOk)
+{
+    isOk = true;
+    QVariantMap decryptedData;
+    if (!m_encryptor->isVariantMapEncrypted(data)) {
+        decryptedData = data;
+    } else {
+        decryptedData = m_encryptor->decodeVariantMap(data, pid);
+        if (m_encryptor->status() != Encryptor::Ok)
+            isOk = false;
+    }
+    return decryptedData;
 }

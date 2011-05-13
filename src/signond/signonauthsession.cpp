@@ -127,11 +127,13 @@ QVariantMap SignonAuthSession::process(const QVariantMap &sessionDataVa,
                                        const QString &mechanism)
 {
     setDelayedReply(true);
-    parent()->process(connection(),
-                      message(),
-                      sessionDataVa,
-                      mechanism,
-                      objectName());
+    RequestData request(connection(),
+                        message(),
+                        sessionDataVa,
+                        mechanism,
+                        objectName(),
+                        m_ownerPid);
+    parent()->process(request);
     return QVariantMap();
 }
 

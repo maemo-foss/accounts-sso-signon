@@ -91,7 +91,7 @@ class SignonDaemon;
         void stateChanged(const QString &requestId, int state, const QString &message);
 
     private Q_SLOTS:
-        void startNewRequest();
+        void tryProcessRequest();
 
         void processResultReply(const QString &sessionKey, const QVariantMap &data);
         void processStore(const QString &sessionKey, const QVariantMap &data);

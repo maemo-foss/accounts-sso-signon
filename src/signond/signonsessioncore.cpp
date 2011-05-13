@@ -42,6 +42,10 @@
 #define SSO_KEY_PASSWORD QLatin1String("Secret")
 #define SSO_KEY_CAPTION QLatin1String("Caption")
 
+#define SSO_PASSWORD_METHOD QLatin1String("password")
+
+const char tryProcessRequestMethod[] = "tryProcessRequest";
+
 using namespace SignonDaemonNS;
 using namespace SignOnCrypto;
 
@@ -274,7 +278,7 @@ void SignonSessionCore::process(const QDBusConnection &connection,
     }
 
     if (CredentialsAccessManager::instance()->isCredentialsSystemReady())
-        QMetaObject::invokeMethod(this, "startNewRequest", Qt::QueuedConnection);
+        QMetaObject::invokeMethod(this, tryProcessRequestMethod, Qt::QueuedConnection);
 }
 
 void SignonSessionCore::cancel(const QString &sessionKey)
@@ -323,7 +327,7 @@ void SignonSessionCore::setId(quint32 id)
 
     QString key;
 
-    if (id == 0) {
+    if (id == SIGNOND_NEW_IDENTITY) {
         key = sessionName(m_id, m_method);
         sessionsOfNonStoredCredentials.append(sessionsOfStoredCredentials.take(key));
     } else {
@@ -349,7 +353,7 @@ void SignonSessionCore::startProcess()
     RequestData requestData = m_requestsQueue.head();
     QVariantMap parameters = requestData.m_params;
 
-    if (m_id) {
+    if (m_id != SIGNOND_NEW_IDENTITY) {
         CredentialsDB *db = CredentialsAccessManager::instance()->credentialsDB();
         Q_ASSERT(db != 0);
 
@@ -427,7 +431,7 @@ void SignonSessionCore::startProcess()
                                                                    SIGNOND_RUNTIME_ERR_STR);
         requestData.m_conn.send(errReply);
         m_requestsQueue.removeFirst();
-        QMetaObject::invokeMethod(this, "startNewRequest", Qt::QueuedConnection);
+        QMetaObject::invokeMethod(this, tryProcessRequestMethod, Qt::QueuedConnection);
     } else
         stateChangedSlot(requestData.m_sessionKey, SignOn::SessionStarted, QLatin1String("The request is started successfully"));
 }
@@ -589,13 +593,13 @@ void SignonSessionCore::processResultReply(const QString &sessionKey, const QVar
 
     keepInUse();
 
-    if (!m_requestsQueue.size())
+    if (m_requestsQueue.isEmpty())
         return;
 
     RequestData rd = m_requestsQueue.dequeue();
 
     if (sessionKey != m_sessionKey) {
-        QVariantList arguments;
+
         QVariantMap filteredData = filterVariantMap(data);
 
         CredentialsAccessManager *camManager = CredentialsAccessManager::instance();
@@ -656,7 +660,7 @@ void SignonSessionCore::processResultReply(const QString &sessionKey, const QVar
         }
 
         //remove secret field from output
-        if (m_method != QLatin1String("password")
+        if (m_method != SSO_PASSWORD_METHOD
             && filteredData.contains(SSO_KEY_PASSWORD))
             filteredData.remove(SSO_KEY_PASSWORD);
 
@@ -680,7 +684,7 @@ void SignonSessionCore::processResultReply(const QString &sessionKey, const QVar
         m_queryCredsUiDisplayed = false;
     }
     m_sessionKey.clear();
-    QMetaObject::invokeMethod(this, "startNewRequest", Qt::QueuedConnection);
+    QMetaObject::invokeMethod(this, tryProcessRequestMethod, Qt::QueuedConnection);
 }
 
 void SignonSessionCore::processStore(const QString &sessionKey, const QVariantMap &data)
@@ -755,7 +759,7 @@ void SignonSessionCore::processUiRequest(const QString &sessionKey, const QVaria
 
     keepInUse();
 
-    if (sessionKey != m_sessionKey && m_requestsQueue.size()) {
+    if (sessionKey != m_sessionKey && !m_requestsQueue.isEmpty()) {
         QString uiRequestId = m_requestsQueue.head().m_sessionKey;
 
         if (m_signonui->isBusy())
@@ -808,7 +812,7 @@ void SignonSessionCore::processRefreshRequest(const QString &sessionKey, const Q
 
     keepInUse();
 
-    if (sessionKey != m_sessionKey && m_requestsQueue.size()) {
+    if ((sessionKey != m_sessionKey) && !m_requestsQueue.isEmpty()) {
         QString uiRequestId = m_requestsQueue.head().m_sessionKey;
 
         if (m_signonui->isBusy())
@@ -826,7 +830,7 @@ void SignonSessionCore::processError(const QString &sessionKey, int err, const Q
     m_tmpUsername.clear();
     m_tmpPassword.clear();
 
-    if (!m_requestsQueue.size())
+    if (m_requestsQueue.isEmpty())
         return;
 
     RequestData rd = m_requestsQueue.dequeue();
@@ -840,12 +844,12 @@ void SignonSessionCore::processError(const QString &sessionKey, int err, const Q
     }
 
     m_sessionKey.clear();
-    QMetaObject::invokeMethod(this, "startNewRequest", Qt::QueuedConnection);
+    QMetaObject::invokeMethod(this, tryProcessRequestMethod, Qt::QueuedConnection);
 }
 
 void SignonSessionCore::stateChangedSlot(const QString &sessionKey, int state, const QString &message)
 {
-    if (sessionKey != m_sessionKey && m_requestsQueue.size()) {
+    if (sessionKey != m_sessionKey && !m_requestsQueue.isEmpty()) {
         RequestData rd = m_requestsQueue.head();
         emit stateChanged(rd.m_sessionKey, (int)state, message);
     }
@@ -935,7 +939,7 @@ void SignonSessionCore::queryUiReply(const QVariantMap &parameters,
     }
 }
 
-void SignonSessionCore::startNewRequest()
+void SignonSessionCore::tryProcessRequest()
 {
     keepInUse();
 
@@ -980,5 +984,5 @@ void SignonSessionCore::destroy()
 
 void SignonSessionCore::credentialsSystemReady()
 {
-    QMetaObject::invokeMethod(this, "startNewRequest", Qt::QueuedConnection);
+    QMetaObject::invokeMethod(this, tryProcessRequestMethod, Qt::QueuedConnection);
 }

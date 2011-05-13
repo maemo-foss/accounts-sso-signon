@@ -28,8 +28,13 @@
  * Implementation of interface class SignonUiAdaptor
  */
 
+const char queryDialogMethod[] = "queryDialog";
+const char refreshDialogMethod[] = "refreshDialog";
+const char cancelDialogMethod[] = "cancelDialog";
+
 SignonUiAdaptor::SignonUiAdaptor(const QString &service, const QString &path, const QDBusConnection &connection, QObject *parent)
-    : QDBusAbstractInterface(service, path, staticInterfaceName(), connection, parent)
+    : QDBusAbstractInterface(service, path, staticInterfaceName(), connection, parent),
+      watcher(0)
 {
 }
 
@@ -40,34 +45,54 @@ SignonUiAdaptor::~SignonUiAdaptor()
 /*
  * Open a new dialog
  * */
-
-QDBusPendingCall SignonUiAdaptor::queryDialog(const QVariantMap &parameters)
+void SignonUiAdaptor::queryDialog(const QVariantMap &parameters)
 {
-    QList<QVariant> argumentList;
-    argumentList << parameters;
-    return callWithArgumentListAndBigTimeout(QLatin1String("queryDialog"), argumentList);
+    requestType = Query;
+    makeCall(QLatin1String(queryDialogMethod), parameters);
 }
 
-
 /*
- * update the existing dialog
+ * Update the existing dialog
  * */
-QDBusPendingCall SignonUiAdaptor::refreshDialog(const QVariantMap &parameters)
+void SignonUiAdaptor::refreshDialog(const QVariantMap &parameters)
 {
-    QList<QVariant> argumentList;
-    argumentList << parameters;
-    return callWithArgumentListAndBigTimeout(QLatin1String("refreshDialog"), argumentList);
+    requestType = Refresh;
+    makeCall(QLatin1String(refreshDialogMethod), parameters);
 }
 
-
 /*
- * cancel dialog request
+ * Cancel a dialog request
  * */
-void SignonUiAdaptor::cancelUiRequest(const QString &requestId)
+void SignonUiAdaptor::cancelDialog(const QString &requestId)
 {
+    if (watcher != 0) {
+        delete watcher;
+        watcher = 0;
+    }
     QList<QVariant> argumentList;
     argumentList << requestId;
-    callWithArgumentList(QDBus::NoBlock, QLatin1String("cancelUiRequest"), argumentList);
+    callWithArgumentList(QDBus::NoBlock, QLatin1String(cancelDialogMethod), argumentList);
+}
+
+bool SignonUiAdaptor::isBusy() const
+{
+    return (watcher != 0) && !watcher->isFinished();
+}
+
+void SignonUiAdaptor::makeCall(const QString &method, const QVariantMap &parameters)
+{
+    QList<QVariant> argumentList;
+    argumentList << parameters;
+
+    QDBusPendingCall call = callWithArgumentListAndBigTimeout(
+        method, argumentList);
+
+    if (watcher != 0) delete watcher;
+
+    watcher = new QDBusPendingCallWatcher(call, this);
+    connect(watcher,
+            SIGNAL(finished(QDBusPendingCallWatcher*)),
+            SLOT(callFinished(QDBusPendingCallWatcher*)));
 }
 
 QDBusPendingCall SignonUiAdaptor::callWithArgumentListAndBigTimeout(const QString &method,
@@ -81,4 +106,3 @@ QDBusPendingCall SignonUiAdaptor::callWithArgumentListAndBigTimeout(const QStrin
         msg.setArguments(args);
     return connection().asyncCall(msg, SIGNOND_MAX_TIMEOUT);
 }
-

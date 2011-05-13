@@ -45,26 +45,46 @@ class SignonUiAdaptor: public QDBusAbstractInterface
 
     friend class SignonSecureStorageUiAdaptor;
 
+    enum RequestType {
+        Query = 0,
+        Refresh,
+        Cancel
+    };
+
 public:
     static inline const char *staticInterfaceName()
-    { return "com.nokia.singlesignonui"; }
+        { return "com.nokia.singlesignonui"; }
 
-public:
-
-    SignonUiAdaptor(const QString &service, const QString &path, const QDBusConnection &connection, QObject *parent = 0);
+    SignonUiAdaptor(const QString &service, const QString &path,
+                    const QDBusConnection &connection, QObject *parent = 0);
     ~SignonUiAdaptor();
 
-public Q_SLOTS: // METHODS
+    bool isBusy() const;
 
-    QDBusPendingCall queryDialog(const QVariantMap &parameters);
-    QDBusPendingCall refreshDialog(const QVariantMap &parameters);
+public Q_SLOTS:
+    void queryDialog(const QVariantMap &parameters);
+    void refreshDialog(const QVariantMap &parameters);
 
-    void cancelUiRequest(const QString &requestId);
+    void cancelDialog(const QString &requestId);
+
+Q_SIGNALS:
+    void dialogQueried(const QVariantMap &parameters,
+                       bool dbusErrorOccurred);
+    void dialogRefreshed(const QVariantMap &parameters,
+                         bool dbusErrorOccurred);
+
+private Q_SLOTS:
+    void callFinished(QDBusPendingCallWatcher *call);
 
 protected:
+    void makeCall(const QString &method, const QVariantMap &parameters);
     QDBusPendingCall callWithArgumentListAndBigTimeout(
         const QString &method,
         const QList<QVariant> &args = QList<QVariant>());
+
+private:
+    QDBusPendingCallWatcher *watcher;
+    RequestType requestType;
 };
 
 #endif

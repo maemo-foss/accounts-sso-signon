@@ -86,17 +86,18 @@ SignonSessionCore::SignonSessionCore(quint32 id,
       m_passwordUpdate(QString()),
       m_queryCredsUiDisplayed(false)
 {
-    m_signonui = NULL;
-    m_watcher = NULL;
-
     if (!(m_encryptor = new Encryptor))
         qFatal("Cannot allocate memory for encryptor");
 
     m_signonui = new SignonUiAdaptor(
-                                    SIGNON_UI_SERVICE,
-                                    SIGNON_UI_DAEMON_OBJECTPATH,
-                                    QDBusConnection::sessionBus());
+        SIGNON_UI_SERVICE,
+        SIGNON_UI_DAEMON_OBJECTPATH,
+        QDBusConnection::sessionBus());
 
+    connect(m_signonui, SIGNAL(dialogQueried(QVariantMap, bool)),
+            SLOT(queryUiReply(QVariantMap, bool)));
+    connect(m_signonui, SIGNAL(dialogRefreshed(QVariantMap, bool)),
+            SLOT(queryUiReply(QVariantMap, bool)));
 
     connect(CredentialsAccessManager::instance(),
             SIGNAL(credentialsSystemReady()),
@@ -109,13 +110,12 @@ SignonSessionCore::~SignonSessionCore()
         AuthCoreCache::CacheId(m_id, m_method));
 
     delete m_plugin;
-    delete m_watcher;
     delete m_signonui;
     delete m_encryptor;
 
     m_plugin = NULL;
     m_signonui = NULL;
-    m_watcher = NULL;
+    m_encryptor = NULL;
 }
 
 SignonSessionCore *SignonSessionCore::sessionCore(const quint32 id, const QString &method, SignonDaemon *parent)
@@ -294,11 +294,8 @@ void SignonSessionCore::cancel(const QString &cancelKey)
             m_canceled = cancelKey;
             m_plugin->cancel();
 
-            if (m_watcher && !m_watcher->isFinished()) {
-                m_signonui->cancelUiRequest(cancelKey);
-                delete m_watcher;
-                m_watcher = 0;
-            }
+            if (m_signonui->isBusy())
+                m_signonui->cancelDialog(cancelKey);
         }
 
         /*
@@ -680,11 +677,9 @@ void SignonSessionCore::processResultReply(const QString &cancelKey, const QVari
 
         m_canceled = QString();
 
-        if (m_watcher && !m_watcher->isFinished()) {
-            m_signonui->cancelUiRequest(rd.m_cancelKey);
-            delete m_watcher;
-            m_watcher = 0;
-        }
+        if (m_signonui->isBusy())
+            m_signonui->cancelDialog(rd.m_cancelKey);
+
         m_queryCredsUiDisplayed = false;
     }
     m_canceled = QString();
@@ -766,13 +761,8 @@ void SignonSessionCore::processUiRequest(const QString &cancelKey, const QVarian
     if (cancelKey != m_canceled && m_listOfRequests.size()) {
         QString uiRequestId = m_listOfRequests.head().m_cancelKey;
 
-        if (m_watcher) {
-            if (!m_watcher->isFinished())
-                m_signonui->cancelUiRequest(uiRequestId);
-
-            delete m_watcher;
-            m_watcher = 0;
-        }
+        if (m_signonui->isBusy())
+            m_signonui->cancelDialog(uiRequestId);
 
         m_listOfRequests.head().m_params = filterVariantMap(data);
         m_listOfRequests.head().m_params[SSOUI_KEY_REQUESTID] = uiRequestId;
@@ -811,9 +801,7 @@ void SignonSessionCore::processUiRequest(const QString &cancelKey, const QVarian
             }
         }
 
-        m_watcher = new QDBusPendingCallWatcher(m_signonui->queryDialog(m_listOfRequests.head().m_params),
-                                                this);
-        connect(m_watcher, SIGNAL(finished(QDBusPendingCallWatcher*)), this, SLOT(queryUiSlot(QDBusPendingCallWatcher*)));
+        m_signonui->queryDialog(m_listOfRequests.head().m_params);
     }
 }
 
@@ -826,18 +814,11 @@ void SignonSessionCore::processRefreshRequest(const QString &cancelKey, const QV
     if (cancelKey != m_canceled && m_listOfRequests.size()) {
         QString uiRequestId = m_listOfRequests.head().m_cancelKey;
 
-        if (m_watcher) {
-            if (!m_watcher->isFinished())
-                m_signonui->cancelUiRequest(uiRequestId);
-
-            delete m_watcher;
-            m_watcher = 0;
-        }
+        if (m_signonui->isBusy())
+            m_signonui->cancelDialog(uiRequestId);
 
         m_listOfRequests.head().m_params = filterVariantMap(data);
-        m_watcher = new QDBusPendingCallWatcher(m_signonui->refreshDialog(m_listOfRequests.head().m_params),
-                                                this);
-        connect(m_watcher, SIGNAL(finished(QDBusPendingCallWatcher*)), this, SLOT(queryUiSlot(QDBusPendingCallWatcher*)));
+        m_signonui->refreshDialog(m_listOfRequests.head().m_params);
     }
 }
 
@@ -856,10 +837,8 @@ void SignonSessionCore::processError(const QString &cancelKey, int err, const QS
     if (cancelKey != m_canceled) {
         replyError(rd.m_conn, rd.m_msg, err, message);
 
-        if (m_watcher && !m_watcher->isFinished()) {
-            m_signonui->cancelUiRequest(rd.m_cancelKey);
-            delete m_watcher;
-            m_watcher = 0;
+        if (m_signonui->isBusy()) {
+            m_signonui->cancelDialog(rd.m_cancelKey);
         }
     }
 
@@ -905,16 +884,19 @@ void SignonSessionCore::customEvent(QEvent *event)
     QObject::customEvent(event);
 }
 
-void SignonSessionCore::queryUiSlot(QDBusPendingCallWatcher *call)
+void SignonSessionCore::queryUiReply(const QVariantMap &parameters,
+                                     bool dbusErrorOccurred)
 {
     keepInUse();
 
-    QDBusPendingReply<QVariantMap> reply = *call;
     bool isRequestToRefresh = false;
     Q_ASSERT_X( m_listOfRequests.size() != 0, __func__, "queue of requests is empty");
 
-    if (!reply.isError() && reply.count()) {
-        QVariantMap resultParameters = reply.argumentAt<0>();
+    QVariantMap resultParameters(parameters);
+    if (dbusErrorOccurred) {
+        m_listOfRequests.head().m_params.insert(
+            SSOUI_KEY_ERROR, (int)SignOn::QUERY_ERROR_NO_SIGNONUI);
+    } else {
         if (resultParameters.contains(SSOUI_KEY_REFRESH)) {
             isRequestToRefresh = true;
             resultParameters.remove(SSOUI_KEY_REFRESH);
@@ -931,8 +913,6 @@ void SignonSessionCore::queryUiSlot(QDBusPendingCallWatcher *call)
         } else {
             m_queryCredsUiDisplayed = true;
         }
-    } else {
-        m_listOfRequests.head().m_params.insert(SSOUI_KEY_ERROR, (int)SignOn::QUERY_ERROR_NO_SIGNONUI);
     }
 
     if (m_listOfRequests.head().m_cancelKey != m_canceled) {
@@ -956,9 +936,6 @@ void SignonSessionCore::queryUiSlot(QDBusPendingCallWatcher *call)
                                 m_listOfRequests.head().m_params);
         }
     }
-
-    delete m_watcher;
-    m_watcher = NULL;
 }
 
 void SignonSessionCore::startNewRequest()
@@ -978,8 +955,8 @@ void SignonSessionCore::startNewRequest()
     }
 
     //there is some UI operation with plugin
-    if (m_watcher && !m_watcher->isFinished()) {
-        TRACE() << "watcher is in running mode";
+    if (m_signonui->isBusy()) {
+        TRACE() << "UI watcher is in running mode";
         return;
     }
 
@@ -990,7 +967,7 @@ void SignonSessionCore::startNewRequest()
 void SignonSessionCore::destroy()
 {
     if (m_plugin->isProcessing() ||
-        m_watcher != NULL) {
+        m_signonui->isBusy()) {
         keepInUse();
         return;
     }

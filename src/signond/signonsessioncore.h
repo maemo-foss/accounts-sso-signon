@@ -100,7 +100,8 @@ class SignonDaemon;
         void processError(const QString &cancelKey, int err, const QString &message);
         void stateChangedSlot(const QString &cancelKey, int state, const QString &message);
 
-        void queryUiSlot(QDBusPendingCallWatcher *call);
+        void queryUiReply(const QVariantMap &resultParameters,
+                          bool dbusErrorOccurred);
 
     protected:
         SignonSessionCore(quint32 id, const QString &method, int timeout, SignonDaemon *parent);
@@ -118,8 +119,6 @@ class SignonDaemon;
         QQueue<RequestData> m_listOfRequests;
         SignonUiAdaptor *m_signonui;
         SignOnCrypto::Encryptor *m_encryptor;
-
-        QDBusPendingCallWatcher *m_watcher;
 
         QString m_canceled;
 

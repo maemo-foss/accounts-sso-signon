@@ -146,6 +146,8 @@ public:
     AuthCache *data(const IdentityId id) const;
     void insert(const CacheId &id, AuthCache *cache);
     void clear();
+    int size() const { return m_cache.size(); }
+    bool isEmpty() const { return size() == 0; }
 
     void authSessionDestroyed(const CacheId &id);
 

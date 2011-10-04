@@ -90,10 +90,10 @@ namespace SignOn {
               m_fileSystemMountPath(QString()),
               m_aegisFSFileSystemPath(QString()),
               m_loopDeviceName(QString()),
+              m_mountState(Unmounted),
               m_fileSystemType(Ext2),
               m_fileSystemSize(4)
     {
-        updateMountState(Unmounted);
         if (!CryptsetupHandler::loadDmMod())
             BLAME() << "Could not load `dm_mod`!";
     }
@@ -104,11 +104,11 @@ namespace SignOn {
             : QObject(parent),
               m_accessCode(encryptionKey),
               m_loopDeviceName(QString()),
+              m_mountState(Unmounted),
               m_fileSystemType(Ext2),
               m_fileSystemSize(4)
     {
         setFileSystemPath(fileSystemPath);
-        updateMountState(Unmounted);
 
         if (!CryptsetupHandler::loadDmMod())
             BLAME() << "Could not load `dm_mod`!";

@@ -68,8 +68,6 @@ namespace SignonDaemonNS {
         }
 
         m_parent->registerStoredIdentity(id, objectPath, identityData);
-
-        SignonDisposable::destroyUnused();
     }
 
     QStringList SignonDaemonAdaptor::queryMethods()
@@ -79,7 +77,6 @@ namespace SignonDaemonNS {
 
     QString SignonDaemonAdaptor::getAuthSessionObjectPath(const quint32 id, const QString &type)
     {
-        SignonDisposable::destroyUnused();
 
         /* Access Control */
         if (id != SIGNOND_NEW_IDENTITY) {
@@ -91,7 +88,11 @@ namespace SignonDaemonNS {
         }
 
         TRACE() << "ACM passed, creating AuthSession object";
-        return m_parent->getAuthSessionObjectPath(id, type);
+        QString sessionPath = m_parent->getAuthSessionObjectPath(id, type);
+
+        SignonDisposable::destroyUnused();
+
+        return sessionPath;
     }
 
     QStringList SignonDaemonAdaptor::queryMechanisms(const QString &method)

@@ -53,6 +53,7 @@ namespace SignOn {
 
     Identity::~Identity()
     {
+        delete impl;
     }
 
     quint32 Identity::id() const

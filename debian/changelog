@@ -1,3 +1,9 @@
+signon (9.9-1) unstable; urgency=low
+
+  * Fixes: NB#272610 - Password is asked separately for each service after changing the password in server side
+
+ -- Alexander Akimov <ext-alexander.akimo@nokia.com>  Tue, 04 Oct 2011 14:51:02 +0300
+
 signon (9.8-1) unstable; urgency=low
 
   * Fixes: NB#284079 - No mail account can be configured after clearing device

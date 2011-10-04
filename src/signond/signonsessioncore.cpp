@@ -60,8 +60,6 @@ QList<SignonSessionCore *> sessionsOfNonStoredCredentials;
  * */
 QMap<quint32, QQueue<SignonSessionCore *> > queuesOfRequestsByIdentity;
 
-
-
 static QVariantMap filterVariantMap(const QVariantMap &other)
 {
     QVariantMap result;
@@ -322,8 +320,9 @@ void SignonSessionCore::cancel(const QString &cancelKey)
 
                 if (queue.head() == this)
                     requestIsInProcessing = true;
-                else
+                else {
                     queue.removeOne(this);
+                }
             }
         }
 
@@ -345,7 +344,7 @@ void SignonSessionCore::cancel(const QString &cancelKey)
         * will happen. We will know about that precisely: plugin must reply via
         * resultSlot or via errorSlot.
         * */
-        RequestData rd((requestIsInProcessing == true ?
+        RequestData rd((requestIsInProcessing ?
                        m_listOfRequests.head() :
                        m_listOfRequests.takeAt(requestIndex)));
         QDBusMessage errReply = rd.m_msg.createErrorReply(SIGNOND_SESSION_CANCELED_ERR_NAME,

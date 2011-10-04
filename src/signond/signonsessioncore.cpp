@@ -1017,14 +1017,14 @@ void SignonSessionCore::destroy()
 
 void SignonSessionCore::addRef()
 {
-    TRACE();
+    TRACE() << "refcount:" << m_refCount;
     m_refCount++;
     setAutoDestruct(false);
 }
 
 void SignonSessionCore::removeRef()
 {
-    TRACE();
+    TRACE() << "refcount:" << m_refCount;
     Q_ASSERT(m_refCount <= 0);
     m_refCount--;
     if (m_refCount == 0) {

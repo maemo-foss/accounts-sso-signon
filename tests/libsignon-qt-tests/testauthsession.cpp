@@ -284,14 +284,6 @@ void TestAuthSession::queryMechanisms_existing_method()
      as->process(inData, "mech1");
      loop.exec();
 
-     as->process(inData, "mech1");
-     loop.exec();
-
-     as->process(inData, "mech1");
-     loop.exec();
-
-     as->process(inData, "mech1");
-     loop.exec();
 
      QCOMPARE(spyResponse.count(), 0);
      QVERIFY(spyError.count() > 0);
@@ -445,7 +437,7 @@ void TestAuthSession::process_from_other_process()
         // We're in the child process now...
         // Do not reuse existing session bus because it is seen by signond
         // as if coming from the parent process and we want to test connection
-		 // from other process
+         // from other process
         QDBusConnection dbuscon2 = QDBusConnection::connectToBus(QDBusConnection::SessionBus, "otherconnection");
         QDBusInterface *dbus = new QDBusInterface(SIGNOND_SERVICE,
                                                   slotMachine.m_path,

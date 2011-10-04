@@ -1,3 +1,10 @@
+signon (9.8-1) unstable; urgency=low
+
+  * Fixes: NB#284079 - No mail account can be configured after clearing device
+  * Fixes: NB#275193 - signonpluginprocess never exits
+
+ -- Tomi Suviola <tomi.suviola@nokia.com>  Tue, 04 Oct 2011 13:23:02 +0300
+
 signon (9.7-2) unstable; urgency=low
 
   * Fixes: NB#284079 - No mail account can be configured after clearing device

@@ -54,6 +54,11 @@ QMap<QString, SignonSessionCore *> sessionsOfStoredCredentials;
  * List of "zero" authsessions, needed for global signout
  * */
 QList<SignonSessionCore *> sessionsOfNonStoredCredentials;
+/*
+ * cache of session queues: we have to serialize of requests done for a given identity
+ * in order to prevent parallel UI sessions for the same username/password
+ * */
+QMap<quint32, QQueue<SignonSessionCore *> > queuesOfRequestsByIdentity;
 
 static QVariantMap filterVariantMap(const QVariantMap &other)
 {
@@ -112,6 +117,11 @@ SignonSessionCore::~SignonSessionCore()
     TRACE();
     AuthCoreCache::instance()->authSessionDestroyed(
         AuthCoreCache::CacheId(m_id, m_method));
+
+    if (queuesOfRequestsByIdentity.contains(m_id)) {
+        QQueue <SignonSessionCore *> queue = queuesOfRequestsByIdentity[m_id];
+        queue.removeAll(this);
+    }
 
     delete m_plugin;
     delete m_watcher;
@@ -215,6 +225,11 @@ bool SignonSessionCore::setupPlugin()
 
 void SignonSessionCore::stopAllAuthSessions()
 {
+    foreach (QQueue<SignonSessionCore *> queue, queuesOfRequestsByIdentity)
+        queue.clear();
+
+    queuesOfRequestsByIdentity.clear();
+
     qDeleteAll(sessionsOfStoredCredentials);
     sessionsOfStoredCredentials.clear();
 
@@ -278,8 +293,11 @@ void SignonSessionCore::process(const QDBusConnection &connection,
                                              cancelKey));
     }
 
-    if (CredentialsAccessManager::instance()->isCredentialsSystemReady())
-        QMetaObject::invokeMethod(this, "startNewRequest", Qt::QueuedConnection);
+    addToQueueOfRequestsByIdentity(m_id, this);
+
+    if (CredentialsAccessManager::instance()->isCredentialsSystemReady()) {
+        wakeUpQueueOfRequestsByIdentity(m_id);
+    }
 }
 
 void SignonSessionCore::cancel(const QString &cancelKey)
@@ -293,9 +311,23 @@ void SignonSessionCore::cancel(const QString &cancelKey)
     }
 
     TRACE() << "The request is found with index " << requestIndex;
+    bool requestIsInProcessing = false;
 
     if (requestIndex < m_listOfRequests.size()) {
         if (requestIndex == 0) {
+            if (queuesOfRequestsByIdentity.contains(m_id)) {
+                QQueue<SignonSessionCore *> queue = queuesOfRequestsByIdentity[m_id];
+
+                if (queue.head() == this)
+                    requestIsInProcessing = true;
+                else {
+                    queue.removeOne(this);
+                }
+            }
+        }
+
+        if (requestIsInProcessing) {
+
             m_canceled = cancelKey;
             m_plugin->cancel();
 
@@ -307,17 +339,16 @@ void SignonSessionCore::cancel(const QString &cancelKey)
         }
 
         /*
-         * We must let to the m_listOfRequests to have the canceled request data
-         * in order to delay the next request execution until the actual cancelation
-         * will happen. We will know about that precisely: plugin must reply via
-         * resultSlot or via errorSlot.
-         * */
-        RequestData rd((requestIndex == 0 ?
-                        m_listOfRequests.head() :
-                        m_listOfRequests.takeAt(requestIndex)));
-
+        * We must let to the m_listOfRequests to have the canceled request data
+        * in order to delay the next request execution until the actual cancelation
+        * will happen. We will know about that precisely: plugin must reply via
+        * resultSlot or via errorSlot.
+        * */
+        RequestData rd((requestIsInProcessing ?
+                       m_listOfRequests.head() :
+                       m_listOfRequests.takeAt(requestIndex)));
         QDBusMessage errReply = rd.m_msg.createErrorReply(SIGNOND_SESSION_CANCELED_ERR_NAME,
-                                                          SIGNOND_SESSION_CANCELED_ERR_STR);
+                                                         SIGNOND_SESSION_CANCELED_ERR_STR);
         rd.m_conn.send(errReply);
         TRACE() << "Size of the queue is " << m_listOfRequests.size();
     }
@@ -350,13 +381,27 @@ void SignonSessionCore::setId(quint32 id)
 
 void SignonSessionCore::startProcess()
 {
-
     TRACE() << "the number of requests is : " << m_listOfRequests.length();
+
+    if (m_listOfRequests.length() == 0) {
+        BLAME() << "problems in data queueing: no request to be processed!!!!";
+        return;
+    }
 
     keepInUse();
 
     RequestData data = m_listOfRequests.head();
     QVariantMap parameters = data.m_params;
+
+    if (data.m_cancelKey == m_canceled) {
+
+        //no need to send cancel error as it is sent already
+        m_listOfRequests.removeFirst();
+        removeFromQueueOfRequestsByIdentity(m_id, this);
+
+        m_canceled = QString();
+        return;
+    }
 
     if (m_id) {
         CredentialsDB *db = CredentialsAccessManager::instance()->credentialsDB();
@@ -364,6 +409,7 @@ void SignonSessionCore::startProcess()
 
         SignonIdentityInfo info = db->credentials(m_id);
         if (info.id() != SIGNOND_NEW_IDENTITY) {
+
             if (!parameters.contains(SSO_KEY_PASSWORD)) {
                 //If secrets db not available attempt loading data from cache
                 if (db->isSecretsDBOpen()) {
@@ -423,6 +469,8 @@ void SignonSessionCore::startProcess()
 
     if (parameters.contains(SSOUI_KEY_UIPOLICY)
         && parameters[SSOUI_KEY_UIPOLICY] == RequestPasswordPolicy) {
+
+        TRACE() << "The request contains demand to show sign-in dialog no matter of what: removing password field from parameters";
         parameters.remove(SSO_KEY_PASSWORD);
     }
 
@@ -440,7 +488,8 @@ void SignonSessionCore::startProcess()
                                                             SIGNOND_RUNTIME_ERR_STR);
         data.m_conn.send(errReply);
         m_listOfRequests.removeFirst();
-        QMetaObject::invokeMethod(this, "startNewRequest", Qt::QueuedConnection);
+
+        removeFromQueueOfRequestsByIdentity(m_id, this);
     } else
         stateChangedSlot(data.m_cancelKey, SignOn::SessionStarted, QLatin1String("The request is started successfully"));
 }
@@ -699,7 +748,7 @@ void SignonSessionCore::processResultReply(const QString &cancelKey, const QVari
         m_queryCredsUiDisplayed = false;
     }
     m_canceled = QString();
-    QMetaObject::invokeMethod(this, "startNewRequest", Qt::QueuedConnection);
+    removeFromQueueOfRequestsByIdentity(m_id, this);
 }
 
 void SignonSessionCore::processStore(const QString &cancelKey, const QVariantMap &data)
@@ -864,6 +913,7 @@ void SignonSessionCore::processError(const QString &cancelKey, int err, const QS
 
     RequestData rd = m_listOfRequests.dequeue();
 
+
     if (cancelKey != m_canceled) {
         replyError(rd.m_conn, rd.m_msg, err, message);
 
@@ -875,7 +925,7 @@ void SignonSessionCore::processError(const QString &cancelKey, int err, const QS
     }
 
     m_canceled = QString();
-    QMetaObject::invokeMethod(this, "startNewRequest", Qt::QueuedConnection);
+    removeFromQueueOfRequestsByIdentity(m_id, this);
 }
 
 void SignonSessionCore::stateChangedSlot(const QString &cancelKey, int state, const QString &message)
@@ -972,30 +1022,77 @@ void SignonSessionCore::queryUiSlot(QDBusPendingCallWatcher *call)
     m_watcher = NULL;
 }
 
+void SignonSessionCore::addToQueueOfRequestsByIdentity(quint32 id, SignonSessionCore *core) {
+    TRACE();
+
+    if (!queuesOfRequestsByIdentity.contains(id)) {
+        QQueue<SignonSessionCore *> queue;
+        queuesOfRequestsByIdentity.insert(id, queue);
+    }
+
+    queuesOfRequestsByIdentity[id].enqueue(core);
+}
+
+void SignonSessionCore::removeFromQueueOfRequestsByIdentity(quint32 id, SignonSessionCore *core)
+{
+    TRACE() << id;
+    if (!queuesOfRequestsByIdentity.contains(id))
+        return;
+
+    TRACE();
+    QQueue<SignonSessionCore *> queue = queuesOfRequestsByIdentity[id];
+    if (queue.isEmpty())
+        return;
+
+    if (queue.head() != core)
+        return;
+
+    queuesOfRequestsByIdentity[id].removeOne(core);
+    wakeUpQueueOfRequestsByIdentity(id);
+}
+
+void SignonSessionCore::wakeUpQueueOfRequestsByIdentity(quint32 id) {
+    TRACE() << id;
+
+    if (!queuesOfRequestsByIdentity.contains(id))
+        return;
+
+    QQueue<SignonSessionCore *> queue = queuesOfRequestsByIdentity[id];
+
+    if (queue.isEmpty())
+        return;
+
+    TRACE() << queue.size();
+
+    SignonSessionCore *core = queue.head();
+    if (!core)
+        return;
+
+    QMetaObject::invokeMethod(core, "startNewRequest", Qt::QueuedConnection);
+}
+
 void SignonSessionCore::startNewRequest()
 {
-    keepInUse();
+    TRACE();
 
-    // there is no request
+    keepInUse();
+    bool processShouldBeStarted = true;
+
     if (!m_listOfRequests.length()) {
         TRACE() << "the data queue is EMPTY!!!";
-        return;
-    }
-
-    //plugin is busy
-    if (m_plugin && m_plugin->isProcessing()) {
+        processShouldBeStarted = false;
+    } else if (m_plugin && m_plugin->isProcessing()) {
         TRACE() << " the plugin is in challenge processing";
-        return;
-    }
-
-    //there is some UI operation with plugin
-    if (m_watcher && !m_watcher->isFinished()) {
+        processShouldBeStarted = false;
+    } else if (m_watcher && !m_watcher->isFinished()) {
         TRACE() << "watcher is in running mode";
-        return;
+        processShouldBeStarted = false;
     }
 
-    TRACE() << "Start the authentication process";
-    startProcess();
+    TRACE() << "Start the authentication process: " << processShouldBeStarted;
+
+    if (processShouldBeStarted)
+        startProcess();
 }
 
 void SignonSessionCore::destroy()
@@ -1035,5 +1132,5 @@ void SignonSessionCore::removeRef()
 
 void SignonSessionCore::credentialsSystemReady()
 {
-    QMetaObject::invokeMethod(this, "startNewRequest", Qt::QueuedConnection);
+    SignonSessionCore::wakeUpQueueOfRequestsByIdentity(m_id);
 }

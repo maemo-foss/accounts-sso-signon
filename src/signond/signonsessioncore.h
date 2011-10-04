@@ -110,8 +110,12 @@ class SignonDaemon;
         void childEvent(QChildEvent *ce);
         void customEvent(QEvent *event);
 
+        static void addToQueueOfRequestsByIdentity(quint32 id, SignonSessionCore *core);
+        static void removeFromQueueOfRequestsByIdentity(quint32 id, SignonSessionCore *core);
+        static void wakeUpQueueOfRequestsByIdentity(quint32 id);
+
     private:
-        void startProcess();
+        Q_INVOKABLE void startProcess();
         void replyError(const QDBusConnection &conn, const QDBusMessage &msg, int err, const QString &message);
         void processStoreOperation(const StoreOperation &operation);
 

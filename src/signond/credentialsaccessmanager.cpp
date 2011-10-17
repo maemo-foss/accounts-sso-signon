@@ -162,6 +162,10 @@ bool CredentialsAccessManager::init(const CAMConfiguration &camConfiguration)
         return false;
     }
 
+    if (!openMetaDataDB()) {
+        BLAME() << "Failed to create metadata DB!!!";
+        return false;
+    }
 
     if (m_CAMConfiguration.m_useEncryption) {
         //Initialize CryptoManager
@@ -440,16 +444,22 @@ bool CredentialsAccessManager::createStorageDir()
         setUserOwnership(storageDir.path());
     }
     return true;
-
 }
+
 bool CredentialsAccessManager::openMetaDataDB()
 {
+    if (m_pCredentialsDB)
+        return true;
+
     QString dbPath = m_CAMConfiguration.metadataDBPath();
 
     m_pCredentialsDB = new CredentialsDB(dbPath);
 
     if (!m_pCredentialsDB->init()) {
         m_error = CredentialsDbConnectionError;
+        delete m_pCredentialsDB;
+        m_pCredentialsDB = NULL;
+
         return false;
     }
 

@@ -108,6 +108,7 @@ namespace SignonDaemonNS {
         m_isProcessing = false;
         m_isResultObtained = false;
         m_currentResultOperation = -1;
+        m_blobIOHandler = NULL;
         m_process = new PluginProcess(this);
 
 #ifdef SIGNOND_TRACE
@@ -551,18 +552,24 @@ namespace SignonDaemonNS {
         if (!m_process->waitForStarted(timeout))
             return false;
 
-        m_blobIOHandler = new BlobIOHandler(m_process, m_process, this);
+        TRACE();
 
-        connect(m_blobIOHandler,
-                SIGNAL(dataReceived(const QVariantMap &)),
-                this,
-                SLOT(sessionDataReceived(const QVariantMap &)), Qt::UniqueConnection);
+        if (m_blobIOHandler == NULL)
+        {
+            TRACE() << "inintializeing the data";
+            m_blobIOHandler = new BlobIOHandler(m_process, m_process, this);
 
-        QSocketNotifier *readNotifier =
-            new QSocketNotifier(STDIN_FILENO, QSocketNotifier::Read, this);
+            connect(m_blobIOHandler,
+                    SIGNAL(dataReceived(const QVariantMap &)),
+                    this,
+                    SLOT(sessionDataReceived(const QVariantMap &)), Qt::UniqueConnection);
 
-        readNotifier->setEnabled(false);
-        m_blobIOHandler->setReadChannelSocketNotifier(readNotifier);
+            QSocketNotifier *readNotifier =
+                new QSocketNotifier(STDIN_FILENO, QSocketNotifier::Read, this);
+
+            readNotifier->setEnabled(false);
+            m_blobIOHandler->setReadChannelSocketNotifier(readNotifier);
+        }
 
         return true;
     }

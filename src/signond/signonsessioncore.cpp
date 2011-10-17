@@ -501,17 +501,17 @@ void SignonSessionCore::replyError(const QDBusConnection &conn, const QDBusMessa
     QString errName;
     QString errMessage;
 
-    //TODO this is needed for old error codes
-    if(err < Error::AuthSessionErr) {
+    if (err == Error::EncryptionFailure) {
+        errName = SIGNOND_ENCRYPTION_FAILED_ERR_NAME;
+        errMessage = SIGNOND_ENCRYPTION_FAILED_ERR_STR;
+    } else if(err < Error::AuthSessionErr) {
         BLAME() << "Deprecated error code: " << err;
-            if (message.isEmpty())
-                errMessage = SIGNOND_UNKNOWN_ERR_STR;
-            else
-                errMessage = message;
-            errName = SIGNOND_UNKNOWN_ERR_NAME;
-    }
-
-    if (Error::AuthSessionErr < err && err < Error::UserErr) {
+        if (message.isEmpty())
+            errMessage = SIGNOND_UNKNOWN_ERR_STR;
+        else
+            errMessage = message;
+        errName = SIGNOND_UNKNOWN_ERR_NAME;
+    } else if (err < Error::UserErr) {
         switch(err) {
             case Error::MechanismNotAvailable:
                 errName = SIGNOND_MECHANISM_NOT_AVAILABLE_ERR_NAME;
@@ -569,7 +569,7 @@ void SignonSessionCore::replyError(const QDBusConnection &conn, const QDBusMessa
                 errName = SIGNOND_OPERATION_FAILED_ERR_NAME;
                 errMessage = SIGNOND_OPERATION_FAILED_ERR_STR;
                 break;
-            case Error::EncryptionFailure:
+            case Error::EncryptionFailed:
                 errName = SIGNOND_ENCRYPTION_FAILED_ERR_NAME;
                 errMessage = SIGNOND_ENCRYPTION_FAILED_ERR_STR;
                 break;
@@ -593,9 +593,7 @@ void SignonSessionCore::replyError(const QDBusConnection &conn, const QDBusMessa
                 errName = SIGNOND_UNKNOWN_ERR_NAME;
                 break;
         };
-    }
-
-    if(err > Error::UserErr) {
+    } else {
         errName = SIGNOND_USER_ERROR_ERR_NAME;
         errMessage = (QString::fromLatin1("%1:%2")).arg(err).arg(message);
     }

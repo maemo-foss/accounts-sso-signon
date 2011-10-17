@@ -506,11 +506,11 @@ void SignonSessionCore::replyError(const QDBusConnection &conn, const QDBusMessa
         errMessage = SIGNOND_ENCRYPTION_FAILED_ERR_STR;
     } else if(err < Error::AuthSessionErr) {
         BLAME() << "Deprecated error code: " << err;
-            if (message.isEmpty())
-                errMessage = SIGNOND_UNKNOWN_ERR_STR;
-            else
-                errMessage = message;
-            errName = SIGNOND_UNKNOWN_ERR_NAME;
+        if (message.isEmpty())
+            errMessage = SIGNOND_UNKNOWN_ERR_STR;
+        else
+            errMessage = message;
+        errName = SIGNOND_UNKNOWN_ERR_NAME;
     } else if (err < Error::UserErr) {
         switch(err) {
             case Error::MechanismNotAvailable:

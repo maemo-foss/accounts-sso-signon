@@ -1,4 +1,4 @@
-signon (9.10-1) unstable; urgency=low
+signon (9.10-2) unstable; urgency=low
 
   * Fixes: NB#244527 - <coverity> defects from signon/8.8-8_0m6
   * Fixes: NB#285818 - signond shows heap leak when continously switching chat account availability between online and offline mode

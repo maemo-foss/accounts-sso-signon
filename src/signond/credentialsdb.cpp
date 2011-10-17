@@ -80,6 +80,8 @@ bool SqlDatabase::init()
         int oldVersion = q.first() ? q.value(0).toInt() : 0;
         if (oldVersion < m_version)
             updateDB(oldVersion);
+
+        q.clear();
     }
 
     return true;
@@ -166,6 +168,7 @@ bool SqlDatabase::transactionalExec(const QStringList &queryList)
     foreach (QString queryStr, queryList) {
         TRACE() << QString::fromLatin1("TRANSACT Query [%1]").arg(queryStr);
         QSqlQuery query = exec(queryStr);
+        query.clear();
 
         if (errorOccurred()) {
             allOk = false;
@@ -526,11 +529,12 @@ end of generated code
 
     foreach (QString createTable, createTableQuery) {
         QSqlQuery query = exec(createTable);
+        query.clear();
+
         if (lastError().isValid()) {
             TRACE() << "Error occurred while creating the database.";
             return false;
         }
-        query.clear();
         commit();
     }
     TRACE() << "Creation successful";
@@ -564,11 +568,12 @@ bool MetaDataDB::updateDB(int version)
         QStringList createTableQuery = tableUpdates2();
         foreach (QString createTable, createTableQuery) {
             QSqlQuery query = exec(createTable);
+            query.clear();
+
             if (lastError().isValid()) {
                 TRACE() << "Error occurred while inseting new tables.";
                 return false;
             }
-            query.clear();
             commit();
         }
         TRACE() << "Table insert successful";
@@ -577,11 +582,11 @@ bool MetaDataDB::updateDB(int version)
         QSqlQuery ownerInsert = exec(S("INSERT OR IGNORE INTO OWNER "
                             "(identity_id, token_id) "
                             " SELECT identity_id, token_id FROM ACL"));
+        ownerInsert.clear();
         if (!commit()){
             BLAME() << "Table copy failed.";
             rollback();
         }
-
     } else {
         return false;
     }
@@ -591,7 +596,6 @@ bool MetaDataDB::updateDB(int version)
 
 QStringList MetaDataDB::methods(const quint32 id, const QString &securityToken)
 {
-    QStringList list;
     if (securityToken.isEmpty()) {
         list = queryList(
                  QString::fromLatin1("SELECT DISTINCT METHODS.method FROM "
@@ -607,9 +611,7 @@ QStringList MetaDataDB::methods(const quint32 id, const QString &securityToken)
                 "(SELECT id FROM TOKENS where token = :token)"));
     q.bindValue(S(":id"), id);
     q.bindValue(S(":token"), securityToken);
-    list = queryList(q);
-
-    return list;
+    return queryList(q);
 }
 
 quint32 MetaDataDB::methodId(const QString &method)
@@ -622,10 +624,14 @@ quint32 MetaDataDB::methodId(const QString &method)
     exec(q);
     if (!q.first()) {
         TRACE() << "No result or invalid method query.";
+        q.clear();
         return 0;
     }
 
-    return q.value(0).toUInt();
+    quint32 result = q.value(0).toUInt();
+    q.clear();
+
+    return result;
 }
 
 SignonIdentityInfo MetaDataDB::identity(const quint32 id)
@@ -639,6 +645,7 @@ SignonIdentityInfo MetaDataDB::identity(const quint32 id)
 
     if (!query.first()) {
         TRACE() << "No result or invalid credentials query.";
+        query.clear();
         return SignonIdentityInfo();
     }
 
@@ -650,8 +657,8 @@ SignonIdentityInfo MetaDataDB::identity(const quint32 id)
     bool isUserNameSecret = flags & UserNameIsSecret;
     if (isUserNameSecret) username = QString();
     int type = query.value(3).toInt();
-
     query.clear();
+
     QStringList realms = queryList(
             QString::fromLatin1("SELECT realm FROM REALMS "
                     "WHERE identity_id = %1").arg(id));
@@ -661,6 +668,7 @@ SignonIdentityInfo MetaDataDB::identity(const quint32 id)
                                 "WHERE id IN "
                                 "(SELECT token_id FROM OWNER WHERE identity_id = '%1' )")
                                 .arg(id));
+
 
     query_str = QString::fromLatin1("SELECT token FROM TOKENS "
             "WHERE id IN "
@@ -672,6 +680,7 @@ SignonIdentityInfo MetaDataDB::identity(const quint32 id)
         securityTokens.append(query.value(0).toString());
     }
     query.clear();
+
     QMap<QString, QVariant> methods;
     query_str = QString::fromLatin1(
             "SELECT DISTINCT ACL.method_id, METHODS.method FROM "
@@ -759,6 +768,7 @@ quint32 MetaDataDB::updateIdentity(const SignonIdentityInfo &info)
                               "VALUES ( :token )"));
         tokenInsert.bindValue(S(":token"), token);
         exec(tokenInsert);
+        tokenInsert.clear();
     }
 
     foreach (QString token, info.ownerList()) {
@@ -768,6 +778,7 @@ quint32 MetaDataDB::updateIdentity(const SignonIdentityInfo &info)
                                   "VALUES ( :token )"));
             tokenInsert.bindValue(S(":token"), token);
             exec(tokenInsert);
+            tokenInsert.clear();
         }
     }
 
@@ -807,6 +818,7 @@ quint32 MetaDataDB::updateIdentity(const SignonIdentityInfo &info)
                     aclInsert.bindValue(S(":mech"), mech);
                     aclInsert.bindValue(S(":token"), token);
                     exec(aclInsert);
+                    aclInsert.clear();
                 }
                 //insert entires for empty mechs list
                 if (it.value().isEmpty()) {
@@ -819,6 +831,7 @@ quint32 MetaDataDB::updateIdentity(const SignonIdentityInfo &info)
                     aclInsert.bindValue(S(":method"), it.key());
                     aclInsert.bindValue(S(":token"), token);
                     exec(aclInsert);
+                    aclInsert.clear();
                 }
             }
         } else {
@@ -834,6 +847,7 @@ quint32 MetaDataDB::updateIdentity(const SignonIdentityInfo &info)
                 aclInsert.bindValue(S(":method"), it.key());
                 aclInsert.bindValue(S(":mech"), mech);
                 exec(aclInsert);
+                aclInsert.clear();
             }
             //insert entires for empty mechs list
             if (it.value().isEmpty()) {
@@ -845,6 +859,7 @@ quint32 MetaDataDB::updateIdentity(const SignonIdentityInfo &info)
                 aclInsert.bindValue(S(":id"), id);
                 aclInsert.bindValue(S(":method"), it.key());
                 exec(aclInsert);
+                aclInsert.clear();
             }
         }
     }
@@ -859,6 +874,7 @@ quint32 MetaDataDB::updateIdentity(const SignonIdentityInfo &info)
             aclInsert.bindValue(S(":id"), id);
             aclInsert.bindValue(S(":token"), token);
             exec(aclInsert);
+            aclInsert.clear();
         }
     }
 
@@ -873,6 +889,7 @@ quint32 MetaDataDB::updateIdentity(const SignonIdentityInfo &info)
             ownerInsert.bindValue(S(":id"), id);
             ownerInsert.bindValue(S(":token"), token);
             exec(ownerInsert);
+            ownerInsert.clear();
         }
     }
 
@@ -955,6 +972,7 @@ bool MetaDataDB::addReference(const quint32 id, const QString &token, const QStr
     if (errorOccurred()) {
                 allOk = false;
     }
+    tokenInsert.clear();
 
     QSqlQuery refsInsert = newQuery();
     refsInsert.prepare(S("INSERT OR REPLACE INTO REFS "
@@ -1015,6 +1033,7 @@ bool MetaDataDB::removeReference(const quint32 id, const QString &token, const Q
     }
 
     exec(refsDelete);
+    refsDelete.clear();
     if (errorOccurred()) {
                 allOk = false;
     }
@@ -1057,6 +1076,8 @@ bool MetaDataDB::insertMethods(QMap<QString, QStringList> methods)
                                "VALUES( :method )"));
         methodInsert.bindValue(S(":method"), it.key());
         exec(methodInsert);
+        methodInsert.clear();
+
         if (errorOccurred()) allOk = false;
         //insert (unique) mechanism names
         foreach (QString mech, it.value()) {
@@ -1066,6 +1087,7 @@ bool MetaDataDB::insertMethods(QMap<QString, QStringList> methods)
             mechInsert.bindValue(S(":mech"), mech);
             exec(mechInsert);
             if (errorOccurred()) allOk = false;
+            mechInsert.clear();
         }
     }
     return allOk;
@@ -1102,6 +1124,7 @@ quint32 MetaDataDB::updateCredentials(const SignonIdentityInfo &info)
     exec(q);
     if (errorOccurred()) {
         TRACE() << "Error occurred while updating crendentials";
+        q.clear();
         return 0;
     }
 
@@ -1110,13 +1133,16 @@ quint32 MetaDataDB::updateCredentials(const SignonIdentityInfo &info)
         QVariant idVariant = q.lastInsertId();
         if (!idVariant.isValid()) {
             TRACE() << "Error occurred while inserting crendentials";
+            q.clear();
             return 0;
         }
+
         id = idVariant.toUInt();
     } else {
         id = info.id() ;
     }
 
+    q.clear();
     return id;
 }
 
@@ -1133,6 +1159,7 @@ bool MetaDataDB::updateRealms(quint32 id, const QStringList &realms, bool isNew)
     }
 
     /* Realms insert */
+    bool result = true;
     QSqlQuery q = newQuery();
     q.prepare(S("INSERT OR IGNORE INTO REALMS (identity_id, realm) "
                 "VALUES (:id, :realm)"));
@@ -1140,9 +1167,15 @@ bool MetaDataDB::updateRealms(quint32 id, const QStringList &realms, bool isNew)
         q.bindValue(S(":id"), id);
         q.bindValue(S(":realm"), realm);
         exec(q);
-        if (errorOccurred()) return false;
+
+        if (errorOccurred()) {
+            result = false;
+            break;
+        }
     }
-    return true;
+
+    q.clear();
+    return result;
 }
 
 bool SecretsDB::createTables()
@@ -1173,11 +1206,12 @@ bool SecretsDB::createTables()
 
    foreach (QString createTable, createTableQuery) {
         QSqlQuery query = exec(createTable);
+        query.clear();
+
         if (lastError().isValid()) {
             TRACE() << "Error occurred while creating the database.";
             return false;
         }
-        query.clear();
         commit();
     }
     return true;
@@ -1206,7 +1240,6 @@ bool SecretsDB::updateCredentials(const quint32 id,
     QString password;
     if (info.storePassword())
         password = info.password();
-
 
     if (password.isEmpty()) {
         TRACE() << "** Empty password inserted.";
@@ -1242,6 +1275,9 @@ bool SecretsDB::updateCredentials(const quint32 id,
 
     exec(query);
 
+    selectQuery.clear();
+    query.clear();
+
     if (errorOccurred()) {
         rollback();
         TRACE() << "Error occurred while storing crendentials";
@@ -1273,6 +1309,7 @@ bool SecretsDB::loadCredentials(SignonIdentityInfo &info)
     QSqlQuery query = exec(queryStr);
     if (!query.first()) {
         TRACE() << "No result or invalid credentials query.";
+        query.clear();
         return false;
     }
 
@@ -1282,7 +1319,7 @@ bool SecretsDB::loadCredentials(SignonIdentityInfo &info)
 
     QString password = query.value(1).toString();
     info.setPassword(password);
-
+    query.clear();
     return true;
 }
 
@@ -1301,6 +1338,7 @@ bool SecretsDB::checkPassword(const quint32 id,
 
     if (errorOccurred()) {
         TRACE() << "Error occurred while checking password";
+        result.clear();
         return false;
     }
     bool valid = false;
@@ -1320,8 +1358,11 @@ QVariantMap SecretsDB::loadData(quint32 id, quint32 method)
     q.bindValue(S(":id"), id);
     q.bindValue(S(":method"), method);
     exec(q);
-    if (errorOccurred())
+
+    if (errorOccurred()) {
+        q.clear();
         return QVariantMap();
+    }
 
     QVariantMap result;
     while (q.next()) {
@@ -1332,6 +1373,9 @@ QVariantMap SecretsDB::loadData(quint32 id, quint32 method)
         stream >> data;
         result.insert(q.value(0).toString(), data);
     }
+
+    q.clear();
+
     return result;
 }
 
@@ -1382,6 +1426,7 @@ bool SecretsDB::storeData(quint32 id, quint32 method, const QVariantMap &data)
             query.bindValue(S(":method"), method);
             query.bindValue(S(":key"), it.key());
             exec(query);
+            query.clear();
             if (errorOccurred()) {
                 allOk = false;
                 break;
@@ -1416,7 +1461,10 @@ bool SecretsDB::removeData(quint32 id, quint32 method)
         q.bindValue(S(":method"), method);
     }
     q.bindValue(S(":id"), id);
+
     exec(q);
+    q.clear();
+
     if (!errorOccurred() && commit()) {
         TRACE() << "Data removal ok.";
         return true;

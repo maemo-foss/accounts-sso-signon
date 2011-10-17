@@ -688,13 +688,13 @@ SignonIdentityInfo MetaDataDB::identity(const quint32 id)
             "WHERE ACL.identity_id = '%1'").arg(id);
     query = exec(query_str);
     while (query.next()) {
-        QStringList mechanisms = queryList(
-                QString::fromLatin1("SELECT DISTINCT MECHANISMS.mechanism FROM "
-                        "( MECHANISMS JOIN ACL "
-                        "ON ACL.mechanism_id = MECHANISMS.id ) "
-                        "WHERE ACL.method_id = '%1' AND ACL.identity_id = '%2' ")
-                        .arg(query.value(0).toInt()).arg(id));
-            methods.insert(query.value(1).toString(), mechanisms);
+        QString query = QString::fromLatin1("SELECT DISTINCT MECHANISMS.mechanism FROM "
+                                            "( MECHANISMS JOIN ACL "
+                                            "ON ACL.mechanism_id = MECHANISMS.id ) "
+                                            "WHERE ACL.method_id = '%1' AND ACL.identity_id = '%2' ")
+                                            .arg(query.value(0).toInt()).arg(id);
+        QStringList mechanisms = queryList(query);
+        methods.insert(query.value(1).toString(), mechanisms);
     }
     query.clear();
 

@@ -360,7 +360,13 @@ void SignonDaemon::init()
         TRACE() << "Session connection cannot be established:" << err.errorString(err.type());
         TRACE() << err.message();
 
-        qFatal("SignonDaemon requires session bus to start working");
+        qCritical("SignonDaemon requires session bus to start working");
+
+        deleteLater();
+        QMetaObject::invokeMethod(QCoreApplication::instance(),
+                                  "quit",
+                                  Qt::QueuedConnection);
+        return;
     }
 
     QDBusConnection::RegisterOptions registerSessionOptions = QDBusConnection::ExportAdaptors;
@@ -371,14 +377,25 @@ void SignonDaemon::init()
                                           + QLatin1String("/Backup"), this, registerSessionOptions)) {
         TRACE() << "Object cannot be registered";
 
-        qFatal("SignonDaemon requires to register backup object");
+        qCritical("SignonDaemon requires to register backup object");
+
+        deleteLater();
+        QMetaObject::invokeMethod(QCoreApplication::instance(),
+                                  "quit",
+                                  Qt::QueuedConnection);
+        return;
     }
 
     if (!sessionConnection.registerService(SIGNOND_SERVICE+QLatin1String(".Backup"))) {
         QDBusError err = sessionConnection.lastError();
         TRACE() << "Service cannot be registered: " << err.errorString(err.type());
 
-        qFatal("SignonDaemon requires to register backup service");
+        qCritical("SignonDaemon requires to register backup service");
+        deleteLater();
+        QMetaObject::invokeMethod(QCoreApplication::instance(),
+                                  "quit",
+                                  Qt::QueuedConnection);
+        return;
     }
 
     if (m_backup) {
@@ -395,7 +412,14 @@ void SignonDaemon::init()
         TRACE() << "Connection cannot be established:" << err.errorString(err.type());
         TRACE() << err.message();
 
-        qFatal("SignonDaemon requires DBus to start working");
+        qCritical("SignonDaemon requires DBus to start working");
+
+        deleteLater();
+        QMetaObject::invokeMethod(QCoreApplication::instance(),
+                                  "quit",
+                                  Qt::QueuedConnection);
+        return;
+
     }
 
     QDBusConnection::RegisterOptions registerOptions = QDBusConnection::ExportAllContents;

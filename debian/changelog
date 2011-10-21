@@ -1,3 +1,10 @@
+signon (9.10-3) unstable; urgency=low
+
+  * Addresses: NB#277832 - All account passwords asked again
+  * Fixing CITA tests execution
+
+ -- Alexander Akimov <ext-alexander.akimo@nokia.com>  Fri, 21 Oct 2011 14:51:02 +0300
+
 signon (9.10-2) unstable; urgency=low
 
   * Fixes: NB#244527 - <coverity> defects from signon/8.8-8_0m6

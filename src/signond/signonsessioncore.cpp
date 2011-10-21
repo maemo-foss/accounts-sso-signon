@@ -293,10 +293,12 @@ void SignonSessionCore::process(const QDBusConnection &connection,
                                              cancelKey));
     }
 
-    addToQueueOfRequestsByIdentity(m_id, this);
-
-    if (CredentialsAccessManager::instance()->isCredentialsSystemReady()) {
-        wakeUpQueueOfRequestsByIdentity(m_id);
+    if (m_id) {
+        addToQueueOfRequestsByIdentity(m_id, this);
+        if (CredentialsAccessManager::instance()->isCredentialsSystemReady())
+            wakeUpQueueOfRequestsByIdentity(m_id);
+    } else {
+        QMetaObject::invokeMethod(this, "startNewRequest", Qt::QueuedConnection);
     }
 }
 
@@ -397,7 +399,10 @@ void SignonSessionCore::startProcess()
 
         //no need to send cancel error as it is sent already
         m_listOfRequests.removeFirst();
-        removeFromQueueOfRequestsByIdentity(m_id, this);
+        if (m_id)
+            removeFromQueueOfRequestsByIdentity(m_id, this);
+        else
+            QMetaObject::invokeMethod(this, "startNewRequest", Qt::QueuedConnection);
 
         m_canceled = QString();
         return;
@@ -489,7 +494,11 @@ void SignonSessionCore::startProcess()
         data.m_conn.send(errReply);
         m_listOfRequests.removeFirst();
 
-        removeFromQueueOfRequestsByIdentity(m_id, this);
+        if (m_id)
+            removeFromQueueOfRequestsByIdentity(m_id, this);
+        else
+            QMetaObject::invokeMethod(this, "startNewRequest", Qt::QueuedConnection);
+
     } else
         stateChangedSlot(data.m_cancelKey, SignOn::SessionStarted, QLatin1String("The request is started successfully"));
 }
@@ -746,7 +755,10 @@ void SignonSessionCore::processResultReply(const QString &cancelKey, const QVari
         m_queryCredsUiDisplayed = false;
     }
     m_canceled = QString();
-    removeFromQueueOfRequestsByIdentity(m_id, this);
+    if (m_id)
+        removeFromQueueOfRequestsByIdentity(m_id, this);
+    else
+        QMetaObject::invokeMethod(this, "startNewRequest", Qt::QueuedConnection);
 }
 
 void SignonSessionCore::processStore(const QString &cancelKey, const QVariantMap &data)
@@ -911,7 +923,6 @@ void SignonSessionCore::processError(const QString &cancelKey, int err, const QS
 
     RequestData rd = m_listOfRequests.dequeue();
 
-
     if (cancelKey != m_canceled) {
         replyError(rd.m_conn, rd.m_msg, err, message);
 
@@ -923,7 +934,10 @@ void SignonSessionCore::processError(const QString &cancelKey, int err, const QS
     }
 
     m_canceled = QString();
-    removeFromQueueOfRequestsByIdentity(m_id, this);
+    if (m_id)
+        removeFromQueueOfRequestsByIdentity(m_id, this);
+    else
+        QMetaObject::invokeMethod(this, "startNewRequest", Qt::QueuedConnection);
 }
 
 void SignonSessionCore::stateChangedSlot(const QString &cancelKey, int state, const QString &message)
@@ -1130,5 +1144,8 @@ void SignonSessionCore::removeRef()
 
 void SignonSessionCore::credentialsSystemReady()
 {
-    SignonSessionCore::wakeUpQueueOfRequestsByIdentity(m_id);
+    if (m_id)
+        SignonSessionCore::wakeUpQueueOfRequestsByIdentity(m_id);
+    else
+        QMetaObject::invokeMethod(this, "startNewRequest", Qt::QueuedConnection);
 }

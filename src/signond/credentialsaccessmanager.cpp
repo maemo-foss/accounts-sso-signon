@@ -401,8 +401,12 @@ bool CredentialsAccessManager::openSecretsDB()
     if (!m_pCredentialsDB->openSecretsDB(dbPath))
         return false;
 #else
-    if (!isSecretsDBOpen() && !m_pCredentialsDB->openSecretsDB(dbPath))
-        return false;
+    if (!isSecretsDBOpen() && !m_pCredentialsDB->openSecretsDB(dbPath)) {
+        //a workaround aimed on solving possible problems with aegisfs
+        QFile::remove(dbPath);
+        if (!m_pCredentialsDB->openSecretsDB(dbPath))
+            return false;
+    }
 #endif
 
     m_error = NoError;

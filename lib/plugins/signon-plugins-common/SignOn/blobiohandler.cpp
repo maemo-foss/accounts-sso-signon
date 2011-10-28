@@ -62,6 +62,8 @@ bool BlobIOHandler::sendData(const QVariantMap &map)
     QByteArray ba = variantMapToByteArray(map);
     stream << ba.size();
 
+    TRACE() << ba.size();
+
     QVector<QByteArray> pages = pageByteArray(ba);
     for (int i = 0; i < pages.count(); ++i)
         stream << pages[i];
@@ -90,6 +92,8 @@ void BlobIOHandler::setReadNotificationEnabled(bool enabled)
 
 void BlobIOHandler::receiveData(int expectedDataSize)
 {
+    TRACE() << expectedDataSize;
+
     m_blobBuffer.clear();
     m_blobSize = expectedDataSize;
 

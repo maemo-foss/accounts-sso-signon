@@ -218,6 +218,7 @@ namespace RemotePluginProcessNS {
 
     void RemotePluginProcess::blobIOError()
     {
+        TRACE();
         error(
             Error(Error::InternalServer,
             QLatin1String("Failed to I/O session data to/from the signon daemon.")));
@@ -226,6 +227,7 @@ namespace RemotePluginProcessNS {
 
     void RemotePluginProcess::result(const SignOn::SessionData &data)
     {
+        TRACE();
         disableCancelThread();
         QDataStream out(&m_outFile);
         QVariantMap resultDataMap;
@@ -238,10 +240,12 @@ namespace RemotePluginProcessNS {
         m_blobIOHandler->sendData(resultDataMap);
 
         m_outFile.flush();
+        TRACE();
     }
 
     void RemotePluginProcess::store(const SignOn::SessionData &data)
     {
+        TRACE();
         QDataStream out(&m_outFile);
         QVariantMap storeDataMap;
 
@@ -257,6 +261,7 @@ namespace RemotePluginProcessNS {
 
     void RemotePluginProcess::error(const SignOn::Error &err)
     {
+        TRACE();
         disableCancelThread();
 
         QDataStream out(&m_outFile);

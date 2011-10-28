@@ -1,3 +1,9 @@
+signon (9.11-1) unstable; urgency=low
+
+  * Fixes: NB#243668 - signon has incomplete doxygen config in debian/api
+
+ -- Alexander Akimov <ext-alexander.akimo@nokia.com>  Fri, 28 Oct 2011 14:51:02 +0300
+ 
 signon (9.10-3) unstable; urgency=low
 
   * Addresses: NB#277832 - All account passwords asked again

@@ -6,7 +6,8 @@ libs-pkg: libsignon-qt0
 dev-pkg: libsignon-qt-dev
 headers: /usr/include/signon-qt/SignOn/*
 doc-type: doxygen
-doxygen-conf: doc/doxy.conf
+doxygen-conf: lib/SignOn/doc/doxy.conf
+
 
 interface: signon-saslplugin
 dev-pkg: signon-saslplugin-dev
@@ -17,13 +18,22 @@ scope: Nokia MeeGo
 state: stable
 type: library
 doc-type: doxygen
-doxygen-conf: doc/doxy.conf
+doxygen-conf: src/plugins/sasl/doc/doxy.conf
 
 interface: signon-plugins
 dev-pkg: signon-plugins-dev
 domain: Accounts and SSO
 headers:
  /usr/include/signon-plugins/SignOn/*
+scope: Nokia MeeGo
+state: stable
+type: library
+doc-type: doxygen
+doxygen-conf: lib/plugins/doc/doxy.conf
+
+interface: signon-mainpage
+dev-pkg: libsignon-qt-dev signon-saslplugin-dev signon-plugins-dev
+domain: Accounts and SSO
 scope: Nokia MeeGo
 state: stable
 type: library

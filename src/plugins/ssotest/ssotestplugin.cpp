@@ -62,12 +62,16 @@ namespace SsoTestPluginNS {
      * */
     void SsoTestPlugin::process(const SignOn::SessionData &inData, const QString &mechanism)
     {
+        TRACE();
+
         if (!mechanisms().contains(mechanism)) {
             QString message = QLatin1String("The given mechanism is unavailable");
             TRACE() << message;
             emit error(Error(Error::MechanismNotAvailable, message));
             return;
         }
+
+        TRACE();
 
         QMetaObject::invokeMethod(this,
                                   "execProcess",
@@ -85,7 +89,6 @@ namespace SsoTestPluginNS {
             if (!is_canceled) {
                 TRACE() << "Signal is sent";
                 emit statusChanged(PLUGIN_STATE_WAITING, QLatin1String("hello from the test plugin"));
-                usleep(0.1 * 1000000);
             }
 
         if (is_canceled) {

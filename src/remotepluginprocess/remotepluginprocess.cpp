@@ -238,9 +238,7 @@ namespace RemotePluginProcessNS {
         out << (quint32)PLUGIN_RESPONSE_RESULT;
 
         m_blobIOHandler->sendData(resultDataMap);
-
         m_outFile.flush();
-        TRACE();
     }
 
     void RemotePluginProcess::store(const SignOn::SessionData &data)
@@ -253,9 +251,7 @@ namespace RemotePluginProcessNS {
             storeDataMap[key] = data.getProperty(key);
 
         out << (quint32)PLUGIN_RESPONSE_STORE;
-
         m_blobIOHandler->sendData(storeDataMap);
-
         m_outFile.flush();
     }
 
@@ -270,7 +266,6 @@ namespace RemotePluginProcessNS {
         out << (quint32)err.type();
         out << err.message();
         m_outFile.flush();
-
         TRACE() << "error is sent" << err.type() << " " << err.message();
     }
 
@@ -306,7 +301,6 @@ namespace RemotePluginProcessNS {
         out << (quint32)PLUGIN_RESPONSE_REFRESHED;
 
         m_blobIOHandler->sendData(resultDataMap);
-
         m_outFile.flush();
     }
 

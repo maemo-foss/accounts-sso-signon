@@ -200,6 +200,8 @@ namespace SignonDaemonNS {
 
    bool PluginProxy::process(const QString &cancelKey, const QVariantMap &inData, const QString &mechanism)
    {
+       TRACE();
+
         if (!restartIfRequired())
             return false;
 
@@ -292,6 +294,7 @@ namespace SignonDaemonNS {
 
     bool PluginProxy::isProcessing()
     {
+        TRACE();
         return m_isProcessing;
     }
 
@@ -322,44 +325,52 @@ namespace SignonDaemonNS {
 
     void PluginProxy::onReadStandardOutput()
     {
-        disconnect(m_process, SIGNAL(readyRead()), this, SLOT(onReadStandardOutput()));
+        TRACE();
 
         if (!m_process->bytesAvailable()) {
             qCritical() << "No information available on process";
-            m_isProcessing = false;
-            emit processError(m_cancelKey, Error::InternalServer, QString());
             return;
         }
+
+        disconnect(m_process, SIGNAL(readyRead()), this, SLOT(onReadStandardOutput()));
 
         QDataStream reader(m_process);
-        reader >> m_currentResultOperation;
+        do {
+            reader >> m_currentResultOperation;
 
-        TRACE() << "PROXY RESULT OPERATION:" << m_currentResultOperation;
+            TRACE() << "PROXY RESULT OPERATION:" << m_currentResultOperation;
 
-        if (!isResultOperationCodeValid(m_currentResultOperation)) {
-            TRACE() << "Unknown operation code - skipping.";
+            if (!isResultOperationCodeValid(m_currentResultOperation)) {
+                TRACE() << "Unknown operation code - skipping.";
 
-            //flushing the stdin channel
-            Q_UNUSED(m_process->readAllStandardOutput());
+                //flushing the stdin channel
+                Q_UNUSED(m_process->readAllStandardOutput());
+                break;
+            }
 
-            connect(m_process, SIGNAL(readyRead()), this, SLOT(onReadStandardOutput()));
-            return;
-        }
+            if (m_currentResultOperation != PLUGIN_RESPONSE_SIGNAL
+                && m_currentResultOperation != PLUGIN_RESPONSE_ERROR) {
 
-        if (m_currentResultOperation != PLUGIN_RESPONSE_SIGNAL
-            && m_currentResultOperation != PLUGIN_RESPONSE_ERROR) {
+                connect(m_blobIOHandler, SIGNAL(error()),
+                        this, SLOT(blobIOError()), Qt::UniqueConnection);
 
-            connect(m_blobIOHandler, SIGNAL(error()),
-                    this, SLOT(blobIOError()), Qt::UniqueConnection);
+                int expectedDataSize = 0;
+                reader >> expectedDataSize;
+                TRACE() << "PROXY EXPECTED DATA SIZE:" << expectedDataSize;
 
-            int expectedDataSize = 0;
-            reader >> expectedDataSize;
-            TRACE() << "PROXY EXPECTED DATA SIZE:" << expectedDataSize;
+                m_blobIOHandler->receiveData(expectedDataSize);
+            } else {
+                handlePluginResponse(m_currentResultOperation);
 
-            m_blobIOHandler->receiveData(expectedDataSize);
-        } else {
-            handlePluginResponse(m_currentResultOperation);
-        }
+                if (m_currentResultOperation == PLUGIN_RESPONSE_ERROR) {
+                    //flushing the stdin channel
+                    Q_UNUSED(m_process->readAllStandardOutput());
+                    break;
+                }
+            }
+        } while (m_process->bytesAvailable());
+
+        connect(m_process, SIGNAL(readyRead()), this, SLOT(onReadStandardOutput()));
     }
 
     void PluginProxy::sessionDataReceived(const QVariantMap &map)
@@ -464,13 +475,12 @@ namespace SignonDaemonNS {
             else
                 BLAME() << "Unexpected plugin signal: " << state << message;
         }
-
-        connect(m_process, SIGNAL(readyRead()), this, SLOT(onReadStandardOutput()));
     }
 
     void PluginProxy::onReadStandardError()
     {
         QString ba = QString::fromLatin1(m_process->readAllStandardError());
+        TRACE() << ba;
     }
 
     void PluginProxy::onExit(int exitCode, QProcess::ExitStatus exitStatus)

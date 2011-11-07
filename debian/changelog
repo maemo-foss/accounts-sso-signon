@@ -1,3 +1,9 @@
+signon (9.12-3) unstable; urgency=low
+
+  * Fixes: NB#289715 - Signon dialogue does not pop up on giving incorrect password in Nokia login view after changing the password on server side
+
+ -- Alexander Akimov <ext-alexander.akimo@nokia.com>  Mon, 07 Nov 2011 14:51:02 +0300
+
 signon (9.12-2) unstable; urgency=low
 
   * Fixing of 1 unit test and bumping up the version

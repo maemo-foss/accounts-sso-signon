@@ -992,7 +992,7 @@ void SignonSessionCore::queryUiSlot(QDBusPendingCallWatcher *call)
     keepInUse();
 
     //we should not do anything if the cancellation did not stop the Ui response.
-    if (m_watcher == NULL || m_listOfRequests.size() == 0 || m_watcher != call)
+    if (m_watcher == NULL || m_listOfRequests.size() == 0)
         return;
 
     QDBusPendingReply<QVariantMap> reply = *call;

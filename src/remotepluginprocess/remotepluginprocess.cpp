@@ -181,17 +181,21 @@ namespace RemotePluginProcessNS {
         TRACE();
         //set application default proxy
         QNetworkProxy networkProxy = QNetworkProxy::applicationProxy();
+        TRACE() << "Current application proxy: " << networkProxy.hostName() << ":" << networkProxy.port();
 
 #ifdef HAVE_GCONF
         //get proxy settings from GConf
         GConfItem *hostItem = new GConfItem("/system/http_proxy/host");
         if (hostItem->value().canConvert(QVariant::String)) {
             QString host = hostItem->value().toString();
-            GConfItem *portItem = new GConfItem("/system/http_proxy/port");
-            uint port = portItem->value().toUInt();
-            networkProxy = QNetworkProxy(QNetworkProxy::HttpProxy,
+            if (!host.isEmpty()) {
+                GConfItem *portItem = new GConfItem("/system/http_proxy/port");
+                uint port = portItem->value().toUInt();
+                networkProxy = QNetworkProxy(QNetworkProxy::HttpProxy,
                                         host, port);
-            delete portItem;
+                TRACE() << "New QNetworkProxy created from GConf settings";
+                delete portItem;
+            }
         }
         delete hostItem;
 #endif
@@ -210,9 +214,12 @@ namespace RemotePluginProcessNS {
         }
 
         //add other proxy types here
+        TRACE() << "New proxy values: " << networkProxy.hostName() << ":" << networkProxy.port();
+        if (networkProxy != QNetworkProxy::applicationProxy()) {
+            QNetworkProxy::setApplicationProxy(networkProxy);
+            TRACE() << "setApplicationProxy is called";
+        }
 
-        TRACE() << networkProxy.hostName() << ":" << networkProxy.port();
-        QNetworkProxy::setApplicationProxy(networkProxy);
         return true;
     }
 

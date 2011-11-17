@@ -105,7 +105,6 @@ class RemotePluginProcess : public QObject
 
         bool loadPlugin(QString &type);
         bool setupDataStreams();
-        bool setupProxySettings();
 
     public Q_SLOTS:
         void startTask();

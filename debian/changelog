@@ -1,3 +1,9 @@
+signon (9.13-1) unstable; urgency=low
+
+  * Fixes: NB#286797 - It is not able to log in Twitter, Customized image
+
+ -- Smita Srivastava <smita.srivastava@teleca.com>  Thu, 17 Nov 2011 10:23:46 +0200
+
 signon (9.12-3) unstable; urgency=low
 
   * Fixes: NB#289715 - Signon dialogue does not pop up on giving incorrect password in Nokia login view after changing the password on server side

@@ -73,9 +73,6 @@ namespace RemotePluginProcessNS {
     {
         RemotePluginProcess *rpp = new RemotePluginProcess(parent);
 
-        //this is needed before plugin is initialized
-        rpp->setupProxySettings();
-
         if (!rpp->loadPlugin(type) ||
            !rpp->setupDataStreams() ||
            rpp->m_plugin->type() != type) {
@@ -173,46 +170,6 @@ namespace RemotePluginProcessNS {
 
         m_blobIOHandler->setReadChannelSocketNotifier(m_readnotifier);
 
-        return true;
-    }
-
-    bool RemotePluginProcess::setupProxySettings()
-    {
-        TRACE();
-        //set application default proxy
-        QNetworkProxy networkProxy = QNetworkProxy::applicationProxy();
-
-#ifdef HAVE_GCONF
-        //get proxy settings from GConf
-        GConfItem *hostItem = new GConfItem("/system/http_proxy/host");
-        if (hostItem->value().canConvert(QVariant::String)) {
-            QString host = hostItem->value().toString();
-            GConfItem *portItem = new GConfItem("/system/http_proxy/port");
-            uint port = portItem->value().toUInt();
-            networkProxy = QNetworkProxy(QNetworkProxy::HttpProxy,
-                                        host, port);
-            delete portItem;
-        }
-        delete hostItem;
-#endif
-
-        //get system env for proxy
-        QString proxy = qgetenv("http_proxy");
-        if (!proxy.isEmpty()) {
-            QUrl proxyUrl(proxy);
-            if (!proxyUrl.host().isEmpty()) {
-                networkProxy = QNetworkProxy(QNetworkProxy::HttpProxy,
-                                        proxyUrl.host(),
-                                        proxyUrl.port(),
-                                        proxyUrl.userName(),
-                                        proxyUrl.password());
-            }
-        }
-
-        //add other proxy types here
-
-        TRACE() << networkProxy.hostName() << ":" << networkProxy.port();
-        QNetworkProxy::setApplicationProxy(networkProxy);
         return true;
     }
 

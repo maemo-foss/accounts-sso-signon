@@ -569,6 +569,10 @@ void SignonSessionCore::replyError(const QDBusConnection &conn, const QDBusMessa
                 errName = SIGNOND_SESSION_CANCELED_ERR_NAME;
                 errMessage = SIGNOND_SESSION_CANCELED_ERR_STR;
                 break;
+            case Error::SessionClosed:
+                errName = SIGNOND_SESSION_CLOSED_ERR_NAME;
+                errMessage = SIGNOND_SESSION_CLOSED_ERR_STR;
+                break;
             case Error::TimedOut:
                 errName = SIGNOND_TIMED_OUT_ERR_NAME;
                 errMessage = SIGNOND_TIMED_OUT_ERR_STR;

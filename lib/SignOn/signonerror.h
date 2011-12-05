@@ -108,6 +108,8 @@ namespace SignOn {
             ForgotPassword,            /**< User requested reset password sequence. */
             MethodOrMechanismNotAllowed, /**< Method or mechanism not allowed for this identity. */
             IncorrectDate,             /**< Date time incorrect on device. */
+            SessionClosed,             /**< User closed the session before completing session
+                                            related operations - e.g. browser authentication. */
             UserErr = 400                   /* Placeholder to rearrange enumeration
                                              - User space specific */
         };

@@ -46,7 +46,8 @@ enum QueryError {
     QUERY_ERROR_BAD_CAPTCHA_URL, /**< Given url for capctha loading was not valid. */
     QUERY_ERROR_REFRESH_FAILED,  /**< Refresh failed. */
     QUERY_ERROR_FORBIDDEN,       /**< Showing ui forbidden by ui policy. */
-    QUERY_ERROR_FORGOT_PASSWORD  /**< User pressed forgot password. */
+    QUERY_ERROR_FORGOT_PASSWORD, /**< User pressed forgot password. */
+    QUERY_ERROR_SESSION_CLOSED   /**< User closed the session before completing session related operations. */
     //TODO add more errors
 };
 

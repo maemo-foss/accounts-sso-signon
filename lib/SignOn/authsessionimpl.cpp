@@ -344,6 +344,8 @@ void AuthSessionImpl::errorSlot(const QDBusError &err)
 
     } else if (err.name() == SIGNOND_SESSION_CANCELED_ERR_NAME) {
         errCode = Error::SessionCanceled;
+    } else if (err.name() == SIGNOND_SESSION_CLOSED_ERR_NAME) {
+        errCode = Error::SessionClosed;
     } else if (err.name() == SIGNOND_TIMED_OUT_ERR_NAME) {
         errCode = Error::TimedOut;
     } else if (err.name() == SIGNOND_INVALID_CREDENTIALS_ERR_NAME) {

@@ -1,3 +1,9 @@
+signon (9.15.1) unstable; urgency=low
+
+  * Addresses: NB#293240 - Signon web browser should respond more quickly to loading FinalUrl.
+
+ -- Aurel Popirtac <ext-aurel.popirtac@nokia.com>  Thu, 08 Dec 2011 19:16:06 +0200
+
 signon (9.14.2) unstable; urgency=low
 
   * Addresses: NB#288895 - Incorrect error notes when tapped on Cancel/close buttons in Youtube authentication view.

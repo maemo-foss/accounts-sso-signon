@@ -159,6 +159,19 @@ public:
     SIGNON_SESSION_DECLARE_PROPERTY(QString, FinalUrl)
 
     /*!
+     * Declares the property DisplayFinalUrl setter and getter.
+     * This property instructs the Signon UI browser whether to
+     * load and display the FinalUrl or not. If it is set to
+     * `false`, when reached, the final URL will be replied immediately
+     * to the authentication plugin, while stopping it from further loading
+     * and at the same time closing the web browser.
+     * The default behavior is to fully load and display the FinalUrl
+     * web page, then reply it as such to the requesting authentication
+     * plugin.
+     */
+    SIGNON_SESSION_DECLARE_PROPERTY(bool, DisplayFinalUrl)
+
+    /*!
      * Declares the property UrlResponse setter and getter.
      * Response from signon-ui for OpenUrl request.
      * After completion UrlResponse contains redirect target url, if there was redirection.

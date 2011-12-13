@@ -368,6 +368,11 @@ namespace RemotePluginProcessNS {
 
     void RemotePluginProcess::enableCancelThread()
     {
+        TRACE();
+
+        if (!cancelThread)
+            cancelThread = new CancelEventThread(m_plugin);
+
         QEventLoop loop;
         connect(cancelThread,
                 SIGNAL(started()),
@@ -383,7 +388,9 @@ namespace RemotePluginProcessNS {
 
     void RemotePluginProcess::disableCancelThread()
     {
-        if (!cancelThread->isRunning())
+        TRACE();
+
+        if (!cancelThread || !cancelThread->isRunning())
             return;
 
         /**
@@ -420,6 +427,9 @@ namespace RemotePluginProcessNS {
         }
 
         m_readnotifier->setEnabled(true);
+
+        delete cancelThread;
+        cancelThread = NULL;
     }
 
     void RemotePluginProcess::startTask()
@@ -523,9 +533,8 @@ namespace RemotePluginProcessNS {
 
         if (opcode != PLUGIN_OP_CANCEL)
             qCritical() << "wrong operation code: breakage of remotepluginprocess threads synchronization: " << opcode;
-
-        QMetaObject::invokeMethod(m_plugin, "cancel",
-                                     Qt::QueuedConnection);
+        else
+            QMetaObject::invokeMethod(m_plugin, "cancel", Qt::QueuedConnection);
     }
 } //namespace RemotePluginProcessNS
 

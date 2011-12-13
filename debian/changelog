@@ -1,3 +1,9 @@
+signon (9.16-1) unstable; urgency=low
+
+  * Fixes: NB#294076 - [Regression] Download fails during first session of store.
+
+ -- Alexander Akimov Popirtac <ext-alexander.akimov@nokia.com>  Tue, 13 Dec 2011 13:16:06 +0200
+
 signon (9.15.1) unstable; urgency=low
 
   * Addresses: NB#293240 - Signon web browser should respond more quickly to loading FinalUrl.

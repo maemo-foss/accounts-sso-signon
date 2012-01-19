@@ -130,6 +130,10 @@ public Q_SLOTS:
     bool clear();
     void onDisconnected();
 
+    void onServiceOwnerChanged(const QString &serviceName,
+                             const QString &oldOwner,
+                             const QString &newOwner);
+
 public Q_SLOTS: // backup METHODS
     uchar backupStarts();
     uchar backupFinished();

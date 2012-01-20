@@ -26,6 +26,8 @@
 
 using namespace SignonDaemonNS;
 
+static QHash<QString, SignonAuthSession*> m_authSessions;
+
 SignonAuthSession::SignonAuthSession(quint32 id,
                                      const QString &method,
                                      pid_t ownerPid) :
@@ -58,11 +60,18 @@ SignonAuthSession::~SignonAuthSession()
     }
 }
 
+void SignonAuthSession::destroySession(const QString &dbusService)
+{
+    SignonAuthSession *session = m_authSessions.take(dbusService);
+    if (session != 0) session->objectUnref();
+}
+
 QString SignonAuthSession::getAuthSessionObjectPath(const quint32 id,
                                                     const QString &method,
                                                     SignonDaemon *parent,
                                                     bool &supportsAuthMethod,
-                                                    pid_t ownerPid)
+                                                    pid_t ownerPid,
+                                                    const QString &clientDBusService)
 {
     TRACE();
     supportsAuthMethod = true;
@@ -94,6 +103,7 @@ QString SignonAuthSession::getAuthSessionObjectPath(const quint32 id,
     }
 
     sas->objectRegistered();
+    m_authSessions.insert(clientDBusService, sas);
 
     connect(core, SIGNAL(stateChanged(const QString&, int, const QString&)),
             sas, SLOT(stateChangedSlot(const QString&, int, const QString&)));
@@ -153,7 +163,6 @@ void SignonAuthSession::setId(quint32 id)
 
 void SignonAuthSession::objectUnref()
 {
-    //TODO - remove the `objectUnref` functionality from the DBus API
     TRACE();
     cancel();
 

@@ -58,8 +58,11 @@ namespace SignonDaemonNS {
                                                 const QString &method,
                                                 SignonDaemon *parent,
                                                 bool &supportsAuthMethod,
-                                                pid_t ownerPid);
+                                                pid_t ownerPid,
+                                                const QString &clientDBusService);
         static void stopAllAuthSessions();
+        static void destroySession(const QString &dbusService);
+
         quint32 id() const;
         QString method() const;
         void objectRegistered();
@@ -70,7 +73,6 @@ namespace SignonDaemonNS {
         QVariantMap process(const QVariantMap &sessionDataVa, const QString &mechanism);
         void cancel();
         void setId(quint32 id);
-        void objectUnref();
 
     Q_SIGNALS:
         void stateChanged(int state, const QString &message);
@@ -82,6 +84,7 @@ namespace SignonDaemonNS {
     protected:
         SignonAuthSession(quint32 id, const QString &method, pid_t ownerPid);
         virtual ~SignonAuthSession();
+        void objectUnref();
 
     private:
         quint32 m_id;

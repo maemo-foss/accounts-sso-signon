@@ -718,12 +718,18 @@ bool SignonDaemon::clear()
 
 QString SignonDaemon::getAuthSessionObjectPath(const quint32 id, const QString type)
 {
+
+    connect(connection().interface(),
+            SIGNAL(serviceOwnerChanged(QString, QString, QString)),
+            SLOT(onServiceOwnerChanged(QString, QString, QString)));
     bool supportsAuthMethod = false;
     pid_t ownerPid = AccessControlManager::pidOfPeer(*this);
+
     QString objectPath =
         SignonAuthSession::getAuthSessionObjectPath(id, type, this,
                                                     supportsAuthMethod,
-                                                    ownerPid);
+                                                    ownerPid,
+                                                    message().service());
     if (objectPath.isEmpty() && !supportsAuthMethod) {
         QDBusMessage errReply = message().createErrorReply(
                                                 SIGNOND_METHOD_NOT_KNOWN_ERR_NAME,
@@ -732,6 +738,14 @@ QString SignonDaemon::getAuthSessionObjectPath(const quint32 id, const QString t
         return QString();
     }
     return objectPath;
+}
+
+void SignonDaemon::onServiceOwnerChanged(const QString &serviceName,
+                                       const QString &oldOwner,
+                                       const QString &newOwner)
+{
+    if (!oldOwner.isEmpty() && newOwner.isEmpty());
+        SignonAuthSession::destroySession(serviceName);
 }
 
 void SignonDaemon::eraseBackupDir() const

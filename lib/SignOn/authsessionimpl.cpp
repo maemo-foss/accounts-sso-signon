@@ -74,7 +74,6 @@ AuthSessionImpl::AuthSessionImpl(AuthSession *parent, quint32 id, const QString 
 AuthSessionImpl::~AuthSessionImpl()
 {
     if (m_DBusInterface) {
-        m_DBusInterface->call(QLatin1String("objectUnref"));
         delete m_DBusInterface;
     }
 }

@@ -134,17 +134,4 @@ namespace SignonDaemonNS {
         parent()->setId(id);
     }
 
-    void SignonAuthSessionAdaptor::objectUnref()
-    {
-        TRACE();
-
-        QDBusContext &dbusContext = *static_cast<QDBusContext *>(parent());
-        if (AccessControlManager::pidOfPeer(dbusContext) != parent()->ownerPid()) {
-            TRACE() << "objectUnref called from peer that doesn't own the AuthSession object\n";
-            return;
-        }
-
-        parent()->objectUnref();
-    }
-
 } //namespace SignonDaemonNS

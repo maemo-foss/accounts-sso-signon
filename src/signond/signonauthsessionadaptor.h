@@ -53,7 +53,6 @@ namespace SignonDaemonNS {
 
         Q_NOREPLY void cancel();
         Q_NOREPLY void setId(quint32 id);
-        Q_NOREPLY void objectUnref();
 
     Q_SIGNALS:
         void stateChanged(int state, const QString &message);

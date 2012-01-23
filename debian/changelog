@@ -1,9 +1,8 @@
-signon (9.17-1) unstable; urgency=low
+signon (9.17-2) unstable; urgency=low
 
-  * UNRELEASED
   * Fixes: NB#296108 - Spinner is keeping spinning infinitely after tapping on Signin button in Twitter accounts screen.
 
- -- Aurel Popirtac <ext-aurel.popirtac@nokia.com>  Fri, 20 Jan 2012 13:34:57 +0200
+ -- Aurel Popirtac <ext-aurel.popirtac@nokia.com>  Mon, 23 Jan 2012 14:35:57 +0200
 
 signon (9.16-1) unstable; urgency=low
 

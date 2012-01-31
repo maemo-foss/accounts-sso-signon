@@ -197,6 +197,7 @@ public:
 protected:
     QStringList queryList(const QString &query_str);
     QStringList queryList(QSqlQuery &query);
+    virtual bool erase();
 
 private:
     QSqlError m_lastError;
@@ -207,12 +208,15 @@ protected:
     friend class CredentialsDB;
 };
 
+class CredentialsDB;
+
 class MetaDataDB: public SqlDatabase
 {
     friend class ::TestDatabase;
 public:
-    MetaDataDB(const QString &name):
-        SqlDatabase(name, QLatin1String("SSO-metadata"), SSO_METADATADB_VERSION) {}
+    MetaDataDB(const QString &name, CredentialsDB *credentialsDB):
+        SqlDatabase(name, QLatin1String("SSO-metadata"), SSO_METADATADB_VERSION),
+        _credentialsDB(credentialsDB) {}
 
     bool createTables();
     bool updateDB(int version);
@@ -243,6 +247,8 @@ private:
     quint32 updateCredentials(const SignonIdentityInfo &info);
     bool updateRealms(quint32 id, const QStringList &realms, bool isNew);
     QStringList tableUpdates2();
+    CredentialsDB *_credentialsDB;
+
 };
 
 class SecretsDB: public SqlDatabase
@@ -282,6 +288,7 @@ class CredentialsDB : public QObject
     Q_DISABLE_COPY(CredentialsDB)
 
     friend class ::TestDatabase;
+    friend class MetaDataDB;
 
     class ErrorMonitor
     {
@@ -336,6 +343,11 @@ public:
     bool addReference(const quint32 id, const QString &token, const QString &reference);
     bool removeReference(const quint32 id, const QString &token, const QString &reference = QString());
     QStringList references(const quint32 id, const QString &token = QString());
+
+private:
+    /* In case of signon database corruption, all accounts and sso databases'
+     * content will be deleted. */
+    void eraseAccountsSsoContent();
 
 private:
     SecretsDB *secretsDB;

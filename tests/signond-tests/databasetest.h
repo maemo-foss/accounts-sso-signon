@@ -65,6 +65,7 @@ private Q_SLOTS:
 
     void accessControlListTest();
     void credentialsOwnerSecurityTokenTest();
+    void databaseCorruptionTest();
 
 private:
     CredentialsDB *m_db;

@@ -52,7 +52,11 @@ public Q_SLOTS:
     void process(const SignOn::SessionData &inData, const QString &mechanism = 0);
     void userActionFinished(const SignOn::UiSessionData &data);
 //    void refresh(const SignOn::UiSessionData &data);
-    };
+
+private:
+    void replyError(const SignOn::Error &err);
+    void replyResult(const SignOn::SessionData &data);
+};
 
 } //namespace PasswordPluginNS
 

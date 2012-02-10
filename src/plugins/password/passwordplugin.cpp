@@ -24,6 +24,7 @@
 #include "SignOn/signonplugincommon.h"
 
 using namespace SignOn;
+static bool isProcessing = false;
 
 namespace PasswordPluginNS {
 
@@ -52,7 +53,7 @@ namespace PasswordPluginNS {
 
     void PasswordPlugin::cancel()
     {
-        emit error(Error(Error::SessionCanceled));
+        replyError(Error(Error::SessionCanceled));
     }
 
     /*
@@ -65,12 +66,14 @@ namespace PasswordPluginNS {
         Q_UNUSED(mechanism);
         SignOn::SessionData response;
 
+        isProcessing = true;
+
         if (!inData.UserName().isEmpty())
             response.setUserName(inData.UserName());
 
         if (!inData.Secret().isEmpty()) {
             response.setSecret(inData.Secret());
-            emit result(response);
+            replyResult(response);
             return;
         }
 
@@ -97,18 +100,36 @@ namespace PasswordPluginNS {
             SignOn::SessionData response;
             response.setUserName(data.UserName());
             response.setSecret(data.Secret());
-            emit result(response);
+            replyResult(response);
             return;
         }
 
         if (data.QueryErrorCode() == QUERY_ERROR_CANCELED)
-            emit error(Error::SessionCanceled);
+            replyError(Error::SessionCanceled);
         else
-            emit error(Error(Error::UserInteraction,
+            replyError(Error(Error::UserInteraction,
                        QLatin1String("userActionFinished error: ")
                        + QString::number(data.QueryErrorCode())));
 
         return;
+    }
+
+    void PasswordPlugin::replyError(const Error &err)
+    {
+        if (isProcessing) {
+            TRACE() << "Error Emitted";
+            emit error(err);
+            isProcessing = false;
+        }
+    }
+
+    void PasswordPlugin::replyResult(const SessionData &data)
+    {
+        if (isProcessing) {
+            TRACE() << "Result Emitted";
+            emit result(data);
+            isProcessing = false;
+        }
     }
 
     SIGNON_DECL_AUTH_PLUGIN(PasswordPlugin)

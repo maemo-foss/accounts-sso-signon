@@ -206,15 +206,17 @@ bool CredentialsAccessManager::init(const CAMConfiguration &camConfiguration)
         QObject::connect(m_keyHandler, SIGNAL(ready()),
                          this, SIGNAL(credentialsSystemReady()),
                          Qt::UniqueConnection);
-#else
+#endif
+        QObject::connect(m_keyHandler, SIGNAL(keyInserted(SignOn::Key)),
+                         this, SLOT(onKeyInserted(SignOn::Key)),
+                         Qt::UniqueConnection);
+
+#ifdef SIGNON_AEGISFS
         QObject::connect(m_keyHandler, SIGNAL(ready()),
                          this, SLOT(onKeyHandlerReady()),
                          Qt::UniqueConnection);
 #endif
 
-        QObject::connect(m_keyHandler, SIGNAL(keyInserted(SignOn::Key)),
-                         this, SLOT(onKeyInserted(SignOn::Key)),
-                         Qt::UniqueConnection);
         QObject::connect(m_keyHandler,
                          SIGNAL(lastAuthorizedKeyRemoved(SignOn::Key)),
                          this,
@@ -751,7 +753,7 @@ const QString CredentialsAccessManager::restoreFilePath() const
 
 void CredentialsAccessManager::deleteDefaultKeyStorage() const {
     //TODO: remove this ugly hack later
-    QString defaultCodePath(QLatin1String("/var/lib/aegis/ps/Pe/signon_aegis_default_key_storage"));
+    QString defaultCodePath(QLatin1String("/home/user/.aegis/ps/Pe/signon_aegis_default_key_storage"));
     TRACE() << "Removing old default code: " << defaultCodePath;
     QFile::remove(defaultCodePath);
 }

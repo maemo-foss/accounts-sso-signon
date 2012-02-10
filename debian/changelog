@@ -1,3 +1,10 @@
+signon (9.21-1) unstable; urgency=low
+
+  * Fixes: NB#295599 - Back up restore from PR 1.1 to PR 1.2 resets the account passwords although the SIM is available
+  * Addresses: NB#298228 - Google account goes offline and will not get up again during LPT 
+
+ -- Alexander Akimov <ext-alexander.akimov@nokia.com>  Fri, 10 Feb 2012 16:24:57 +0200
+
 signon (9.20-1) unstable; urgency=low
 
   * Fixes: NB#297381 - Spinner is keeping spinning infinitely after tapping on Signin button in Twitter accounts screen.

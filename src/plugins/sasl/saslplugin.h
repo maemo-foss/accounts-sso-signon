@@ -66,6 +66,10 @@ private:
     static int sasl_log(void *context, int priority, const char *message);
     void set_callbacks();
     bool check_and_fix_parameters(SaslData &input);
+
+    void replyError(const SignOn::Error &err);
+    void replyResult(const SignOn::SessionData &data);
+
     Private *d; // Owned.
 };
 

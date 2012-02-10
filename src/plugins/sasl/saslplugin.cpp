@@ -31,6 +31,7 @@
 #define SAMPLE_SEC_BUF_SIZE (2048)
 
 using namespace SignOn;
+static bool isProcessing = false;
 
 namespace SaslPluginNS {
 
@@ -144,13 +145,15 @@ QStringList SaslPlugin::mechanisms() const
 void SaslPlugin::cancel()
 {
     TRACE();
-    emit error(Error(Error::SessionCanceled));
+    replyError(Error(Error::SessionCanceled));
 }
 
 void SaslPlugin::process(const SignOn::SessionData &inData,
                          const QString &mechanism)
 {
     TRACE();
+
+    isProcessing = true;
 
     int serverlast = 0;
     const char *data = "";
@@ -168,14 +171,14 @@ void SaslPlugin::process(const SignOn::SessionData &inData,
 
     if (!check_and_fix_parameters(d->m_input)) {
         TRACE() << "missing parameters";
-        emit error(Error::MissingData);
+        replyError(Error::MissingData);
         return;
     }
 
     //check state
     if (d->m_input.state() == SaslData::CONTINUE && !d->m_conn) {
         TRACE() << "init not done for CONTINUE";
-        emit error(Error::WrongState);
+        replyError(Error::WrongState);
         return;
     }
 
@@ -190,7 +193,7 @@ void SaslPlugin::process(const SignOn::SessionData &inData,
 
         if (res != SASL_OK) {
             TRACE() << "err Allocating sasl connection state";
-            emit error(Private::mapSaslError(res));
+            replyError(Private::mapSaslError(res));
             return;
         }
 
@@ -200,7 +203,7 @@ void SaslPlugin::process(const SignOn::SessionData &inData,
 
         if (res != SASL_OK) {
             TRACE() << "err Setting security properties";
-            emit error(Private::mapSaslError(res));
+            replyError(Private::mapSaslError(res));
             return;
         }
 
@@ -213,7 +216,7 @@ void SaslPlugin::process(const SignOn::SessionData &inData,
 
         if (res != SASL_OK && res != SASL_CONTINUE) {
             TRACE() << "err Starting SASL negotiation";
-            emit error(Private::mapSaslError(res));
+            replyError(Private::mapSaslError(res));
             return;
         }
 
@@ -248,7 +251,7 @@ void SaslPlugin::process(const SignOn::SessionData &inData,
 
     if (res != SASL_OK && res != SASL_CONTINUE) {
         TRACE() << "err Performing SASL negotiation";
-        emit error(Private::mapSaslError(res));
+        replyError(Private::mapSaslError(res));
         return;
     }
 
@@ -277,7 +280,7 @@ void SaslPlugin::process(const SignOn::SessionData &inData,
 
     //set state into info
     response.setstate(state);
-    emit result(response);
+    replyResult(response);
     return;
 }
 
@@ -448,6 +451,24 @@ bool SaslPlugin::check_and_fix_parameters(SaslData &input)
     if (input.IpRemote().isEmpty()) input.setIpRemote(QByteArray("127.0.0.1"));
 
     return true;
+}
+
+void SaslPlugin::replyError(const Error &err)
+{
+    if (isProcessing) {
+        TRACE() << "Error Emitted";
+        emit error(err);
+        isProcessing = false;
+    }
+}
+
+void SaslPlugin::replyResult(const SessionData &data)
+{
+    if (isProcessing) {
+        TRACE() << "Result Emitted";
+        emit result(data);
+        isProcessing = false;
+    }
 }
 
 SIGNON_DECL_AUTH_PLUGIN(SaslPlugin)

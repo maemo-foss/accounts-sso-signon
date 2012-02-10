@@ -40,6 +40,8 @@
 #include "SignOnCrypto/Encryptor"
 using namespace SignOn;
 
+static bool isProcessing = false;
+
 namespace RemotePluginProcessNS {
 
     static CancelEventThread *cancelThread = NULL;
@@ -186,16 +188,21 @@ namespace RemotePluginProcessNS {
     {
         TRACE();
         disableCancelThread();
-        QDataStream out(&m_outFile);
-        QVariantMap resultDataMap;
 
-        foreach(QString key, data.propertyNames())
-            resultDataMap[key] = data.getProperty(key);
+        if (isProcessing) {
 
-        out << (quint32)PLUGIN_RESPONSE_RESULT;
+            QDataStream out(&m_outFile);
+            QVariantMap resultDataMap;
 
-        m_blobIOHandler->sendData(resultDataMap);
-        m_outFile.flush();
+            foreach(QString key, data.propertyNames())
+                resultDataMap[key] = data.getProperty(key);
+
+            out << (quint32)PLUGIN_RESPONSE_RESULT;
+
+            m_blobIOHandler->sendData(resultDataMap);
+            m_outFile.flush();
+            isProcessing = false;
+        }
     }
 
     void RemotePluginProcess::store(const SignOn::SessionData &data)
@@ -217,13 +224,16 @@ namespace RemotePluginProcessNS {
         TRACE();
         disableCancelThread();
 
-        QDataStream out(&m_outFile);
+        if (isProcessing) {
+            QDataStream out(&m_outFile);
 
-        out << (quint32)PLUGIN_RESPONSE_ERROR;
-        out << (quint32)err.type();
-        out << err.message();
-        m_outFile.flush();
-        TRACE() << "error is sent" << err.type() << " " << err.message();
+            out << (quint32)PLUGIN_RESPONSE_ERROR;
+            out << (quint32)err.type();
+            out << err.message();
+            m_outFile.flush();
+            TRACE() << "error is sent" << err.type() << " " << err.message();
+            isProcessing = false;
+        }
     }
 
     void RemotePluginProcess::userActionRequired(const SignOn::UiSessionData &data)
@@ -300,9 +310,9 @@ namespace RemotePluginProcessNS {
 
     void RemotePluginProcess::process()
     {
+        isProcessing = true;
+
         QDataStream in(&m_inFile);
-
-
         in >> m_currentMechanism;
 
         int processBlobSize = -1;

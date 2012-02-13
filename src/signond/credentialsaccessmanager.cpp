@@ -194,8 +194,7 @@ bool CredentialsAccessManager::init(const CAMConfiguration &camConfiguration)
         QObject::connect(m_keyAuthorizer,
                          SIGNAL(keyAuthorizationQueried(const SignOn::Key,int)),
                          this,
-                         SLOT(onKeyAuthorizationQueried(const SignOn::Key,int)),
-                         Qt::UniqueConnection);
+                         SLOT(onKeyAuthorizationQueried(const SignOn::Key,int)));
 
         /* These signal connections should be done after instantiating the
          * KeyAuthorizer, so that the KeyAuthorizer's slot will be called
@@ -204,27 +203,24 @@ bool CredentialsAccessManager::init(const CAMConfiguration &camConfiguration)
 
 #ifndef SIGNON_AEGISFS
         QObject::connect(m_keyHandler, SIGNAL(ready()),
-                         this, SIGNAL(credentialsSystemReady()),
-                         Qt::UniqueConnection);
+                         this, SIGNAL(credentialsSystemReady()));
 #endif
         QObject::connect(m_keyHandler, SIGNAL(keyInserted(SignOn::Key)),
-                         this, SLOT(onKeyInserted(SignOn::Key)),
-                         Qt::UniqueConnection);
-
-#ifdef SIGNON_AEGISFS
-        QObject::connect(m_keyHandler, SIGNAL(ready()),
-                         this, SLOT(onKeyHandlerReady()),
-                         Qt::UniqueConnection);
-#endif
+                         this, SLOT(onKeyInserted(SignOn::Key)));
 
         QObject::connect(m_keyHandler,
                          SIGNAL(lastAuthorizedKeyRemoved(SignOn::Key)),
                          this,
-                         SLOT(onLastAuthorizedKeyRemoved(SignOn::Key)),
-                         Qt::UniqueConnection);
+                         SLOT(onLastAuthorizedKeyRemoved(SignOn::Key)));
+
         QObject::connect(m_keyHandler, SIGNAL(keyRemoved(SignOn::Key)),
-                         this, SLOT(onKeyRemoved(SignOn::Key)),
-                         Qt::UniqueConnection);
+                         this, SLOT(onKeyRemoved(SignOn::Key)));
+
+#ifdef SIGNON_AEGISFS
+        QObject::connect(m_keyHandler, SIGNAL(ready()),
+                         this, SLOT(onKeyHandlerReady()),
+                         Qt::QueuedConnection);
+#endif
 
         m_keyHandler->initialize(m_pCryptoFileSystemManager, keyManagers);
     }

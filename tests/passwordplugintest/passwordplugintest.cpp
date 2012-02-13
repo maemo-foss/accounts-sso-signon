@@ -55,6 +55,7 @@ void PasswordPluginTest::cleanupTestCase()
 void PasswordPluginTest::init()
 {
     m_testPlugin = new PasswordPlugin();
+    m_testPlugin->setupForUnitTests();
 }
 
 //finnish each test by deleting plugin
@@ -179,6 +180,8 @@ void PasswordPluginTest::testPluginProcess()
 
 void PasswordPluginTest::testPluginUserActionFinished()
 {
+//    QSKIP("Plugin can not emit anything if it in not in processing mode", SkipSingle);
+
     TEST_START
 
     SignOn::UiSessionData info;

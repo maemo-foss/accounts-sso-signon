@@ -28,6 +28,7 @@
 #include "SignOn/uisessiondata.h"
 #include "SignOn/authpluginif.h"
 
+class PasswordPluginTest;
 namespace PasswordPluginNS {
 
 /*!
@@ -40,6 +41,7 @@ class PasswordPlugin : public AuthPluginInterface
 {
     Q_OBJECT
     Q_INTERFACES(AuthPluginInterface)
+    friend class ::PasswordPluginTest;
 
 public:
     PasswordPlugin(QObject *parent = 0);
@@ -56,6 +58,8 @@ public Q_SLOTS:
 private:
     void replyError(const SignOn::Error &err);
     void replyResult(const SignOn::SessionData &data);
+
+    void setupForUnitTests();
 };
 
 } //namespace PasswordPluginNS

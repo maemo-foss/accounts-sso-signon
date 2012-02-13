@@ -1,3 +1,9 @@
+signon (9.21-2) unstable; urgency=low
+
+  * Bumping up the version after fixing the unit tests
+
+ -- Alexander Akimov <ext-alexander.akimov@nokia.com>  Mon, 13 Feb 2012 16:24:57 +0200
+
 signon (9.21-1) unstable; urgency=low
 
   * Fixes: NB#295599 - Back up restore from PR 1.1 to PR 1.2 resets the account passwords although the SIM is available

@@ -25,6 +25,7 @@
 
 using namespace SignOn;
 static bool isProcessing = false;
+static bool isUnitTesting = false;
 
 namespace PasswordPluginNS {
 
@@ -116,7 +117,7 @@ namespace PasswordPluginNS {
 
     void PasswordPlugin::replyError(const Error &err)
     {
-        if (isProcessing) {
+        if (isProcessing || isUnitTesting) {
             TRACE() << "Error Emitted";
             emit error(err);
             isProcessing = false;
@@ -125,12 +126,18 @@ namespace PasswordPluginNS {
 
     void PasswordPlugin::replyResult(const SessionData &data)
     {
-        if (isProcessing) {
+        if (isProcessing || isUnitTesting) {
             TRACE() << "Result Emitted";
             emit result(data);
             isProcessing = false;
         }
     }
+
+    void PasswordPlugin::setupForUnitTests()
+    {
+        isUnitTesting = true;
+    }
+
 
     SIGNON_DECL_AUTH_PLUGIN(PasswordPlugin)
 } //namespace PasswordPluginNS

@@ -1,3 +1,9 @@
+signon (9.21-4) unstable; urgency=low
+
+  * Bumping up the version 
+
+ -- Alexander Akimov <ext-alexander.akimov@nokia.com>  Mon, 13 Feb 2012 17:24:57 +0200
+
 signon (9.21-2) unstable; urgency=low
 
   * Bumping up the version after fixing the unit tests

@@ -16,7 +16,8 @@ QT -= gui
 
 PKGCONFIG += \
     libcrypto \
-    libsignoncrypto-qt
+    libsignoncrypto-qt \
+    accounts-qt
 
 LIBS += -L/usr/lib \
         -lsignon-extension \
@@ -25,10 +26,8 @@ LIBS += -L/usr/lib \
 QMAKE_LIBDIR += \
     $${TOP_BUILD_DIR}/lib/signond/SignOn
 
-#DEFINES += CAM_UNIT_TESTS_FIXED
-
-DEFINES += SIGNOND_TRACE
-DEFINES += SIGNON_PLUGIN_TRACE
+DEFINES += SIGNOND_TRACE \
+           SIGNON_PLUGIN_TRACE
 
 HEADERS += \
     timeouts.h \

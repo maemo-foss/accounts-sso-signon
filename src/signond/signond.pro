@@ -64,7 +64,8 @@ CONFIG += build_all \
 PKGCONFIG += \
     libcrypto \
     libsignoncrypto-qt \
-    signon-plugins-common
+    signon-plugins-common \
+    accounts-qt
 
 QMAKE_LIBDIR += \
     $${TOP_BUILD_DIR}/lib/plugins/signon-plugins-common \

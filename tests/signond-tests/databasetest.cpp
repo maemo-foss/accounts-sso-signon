@@ -655,6 +655,20 @@ void TestDatabase::credentialsOwnerSecurityTokenTest()
 
 }
 
+void TestDatabase::databaseCorruptionTest()
+{
+    initTestCase();
+    QVERIFY(m_meta->connect());
+    QVERIFY(m_meta->createTables());
+
+    int unsupportedDbVersion = 0;
+    QVERIFY(m_meta->updateDB(unsupportedDbVersion));
+    m_meta->disconnect();
+    QVERIFY(m_db->init());
+    QFile::remove(dbFile);
+    QFile::remove(secretsDbFile);
+}
+
 void TestDatabase::runAllTests()
 {
     initTestCase();
@@ -714,6 +728,12 @@ void TestDatabase::runAllTests()
     init();
     credentialsOwnerSecurityTokenTest();
     cleanup();
+
+#ifdef SSO_EXEC_DB_CORRUPTION_TEST
+    init();
+    databaseCorruptionTest();
+    cleanup();
+#endif
 
     cleanupTestCase();
 }

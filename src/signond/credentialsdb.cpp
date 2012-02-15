@@ -25,6 +25,13 @@
 #include "credentialsdb.h"
 #include "signond-common.h"
 
+#include <Accounts/Manager>
+#include <Accounts/Account>
+
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
 #define INIT_ERROR() ErrorMonitor errorMonitor(this)
 #define RETURN_IF_NO_SECRETS_DB(retval) \
     if (!isSecretsDBOpen()) { \
@@ -80,8 +87,6 @@ bool SqlDatabase::init()
         int oldVersion = q.first() ? q.value(0).toInt() : 0;
         if (oldVersion < m_version)
             updateDB(oldVersion);
-
-        q.clear();
     }
 
     return true;
@@ -250,6 +255,13 @@ QStringList SqlDatabase::queryList(QSqlQuery &q)
     }
     query.clear();
     return list;
+}
+
+bool SqlDatabase::erase()
+{
+    QString fileName = m_database.databaseName();
+    m_database.close();
+    return QFile::remove(fileName);
 }
 
 QStringList MetaDataDB::tableUpdates2()
@@ -528,11 +540,10 @@ end of generated code
     createTableQuery << tableUpdates2();
 
     foreach (QString createTable, createTableQuery) {
-        QSqlQuery query = exec(createTable);
-        query.clear();
+        exec(createTable);
 
         if (lastError().isValid()) {
-            TRACE() << "Error occurred while creating the database.";
+            BLAME() << "Error occurred while creating the database.";
             return false;
         }
         commit();
@@ -551,8 +562,9 @@ bool MetaDataDB::updateDB(int version)
         TRACE() << "Upgrading from version < 1 not supported. Clearing DB";
         QString fileName = m_database.databaseName();
         QString connectionName = m_database.connectionName();
-        m_database.close();
-        QFile::remove(fileName);
+
+        _credentialsDB->eraseAccountsSsoContent();
+
         m_database = QSqlDatabase(QSqlDatabase::addDatabase(driver,
                                                             connectionName));
         m_database.setDatabaseName(fileName);
@@ -579,16 +591,20 @@ bool MetaDataDB::updateDB(int version)
         TRACE() << "Table insert successful";
 
         //populate owner table from acl
-        QSqlQuery ownerInsert = exec(S("INSERT OR IGNORE INTO OWNER "
-                            "(identity_id, token_id) "
-                            " SELECT identity_id, token_id FROM ACL"));
-        ownerInsert.clear();
+        exec(S("INSERT OR IGNORE INTO OWNER "
+               "(identity_id, token_id) "
+               " SELECT identity_id, token_id FROM ACL"));
+
+        if (lastError().isValid()) {
+            BLAME() << "Error while executing OWNER table copying.";
+            return false;
+        }
+
         if (!commit()){
             BLAME() << "Table copy failed.";
             rollback();
+            return false;
         }
-    } else {
-        return false;
     }
 
     return SqlDatabase::updateDB(version);
@@ -1506,7 +1522,7 @@ CredentialsDB::ErrorMonitor::~ErrorMonitor()
 
 CredentialsDB::CredentialsDB(const QString &metaDataDbName):
     secretsDB(0),
-    metaDataDB(new MetaDataDB(metaDataDbName))
+    metaDataDB(new MetaDataDB(metaDataDbName, this))
 {
     noSecretsDB = QSqlError(QLatin1String("Secrets DB not opened"),
                             QLatin1String("Secrets DB not opened"),
@@ -1729,6 +1745,56 @@ QStringList CredentialsDB::references(const quint32 id, const QString &token)
 {
     INIT_ERROR();
     return metaDataDB->references(id, token);
+}
+
+void CredentialsDB::eraseAccountsSsoContent()
+{
+    BLAME() << "Removing signon and accounts DBs due to "
+               "signon DB data inconsistency.";
+
+    /* Erasing signon database files. */
+    if (!metaDataDB->erase())
+        BLAME() << "Failed to remove signon metadata db.";
+    if ((secretsDB != 0) && !secretsDB->erase())
+        BLAME() << "Failed to remove signon secrets db.";
+
+    /* Emptying accounts database in user child process. */
+    pid_t childpid;
+
+     /* create the child */
+    childpid = ::fork();
+    if (childpid == -1) {
+        BLAME() << "Cannot proceed. fork() error.";
+        return;
+    }
+
+    if (childpid  == 0) {
+         /* Child process */
+        int userUid = 29999;
+        if (setuid(userUid) != 0) {
+            BLAME() << "Failed to setuid user.";
+            return;
+        }
+
+        Accounts::Manager accountsManager;
+        Accounts::AccountIdList accountsIds = accountsManager.accountList();
+
+        foreach (Accounts::AccountId id, accountsIds) {
+            Accounts::Account *account = accountsManager.account(id);
+            BLAME() << "Removing account:" << id << account->displayName();
+            account->remove();
+            account->syncAndBlock();
+        }
+    } else {
+        int status;
+        ::wait(&status);
+
+        if (WIFEXITED(status)) {
+            BLAME() << "Parent: child has exited with status" << WEXITSTATUS(status);
+        } else {
+            BLAME() << "Parent: child has not terminated normally.";
+        }
+    }
 }
 
 } //namespace SignonDaemonNS

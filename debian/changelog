@@ -1,3 +1,9 @@
+signon (9.22-1) unstable; urgency=low
+
+  * Fixes: NB#297524 - Email accounts not synicng anymore after SSU.
+
+ -- Aurel Popirtac <ext-aurel.popirtac@nokia.com>  Wed, 15 Feb 2012 12:09:44 +0200
+
 signon (9.21-4) unstable; urgency=low
 
   * Bumping up the version 

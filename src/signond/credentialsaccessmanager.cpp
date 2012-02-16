@@ -315,8 +315,6 @@ bool CredentialsAccessManager::openSecretsDB()
        dbPath = luksDBPath;
 
 #ifdef SIGNON_AEGISFS
-       bool fisrtStartAfterUpdate = false;
-
         QString aegisDBName = m_CAMConfiguration.m_aegisPath
                               + QDir::separator()
                               + m_CAMConfiguration.m_dbName;

@@ -1,8 +1,8 @@
 <aegis>
   <provide>
-    <credential name="keychain-access" />
-    <credential name="ssoProtectedWriteAccess" />
-    <credential name="ssoProtectedReadAccess" />
+    <credential name="keychain-access" checkorigin="yes" />
+    <credential name="ssoProtectedWriteAccess" checkorigin="yes" />
+    <credential name="ssoProtectedReadAccess" checkorigin="yes" />
   </provide>
   <account>
     <user name="signon" group="signon"/>

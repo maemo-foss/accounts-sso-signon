@@ -1,3 +1,9 @@
+signon (9.23-1) unstable; urgency=low
+
+  * Fixes: NB#300179 - Credentials provided by signond manifest are not safe
+
+ -- Alexander Akimov <ext-alexander.akimov@nokia.com>  Wed, 11 Apr 2012 14:54:57 +0200
+ 
 signon (9.22-3) unstable; urgency=low
 
   * Bumping up the version

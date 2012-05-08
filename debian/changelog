@@ -1,8 +1,8 @@
-signon (9.24-2) unstable; urgency=low
+signon (9.24-3) unstable; urgency=low
 
-    * Bumping up the version and coming back to the 9.22.3 content.
+  * Bumping up the version and coming back to the 9.22.3 content.
 
- -- Vitaly Repin <ext-vitaly.repin@nokia.com>  Tue, 08 May 2012 16:10:57 +0200
+ -- Vitaly Repin <ext-vitaly.repin@nokia.com>  Tue, 08 May 2012 16:19:57 +0200
 
 signon (9.22-3) unstable; urgency=low
 

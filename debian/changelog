@@ -1,3 +1,9 @@
+signon (9.24-1) unstable; urgency=low
+
+    * Bumping up the version and coming back to the 9.22.3 content.
+
+ -- Vitaly Repin <vitaly@cloudberrytec.com> Tue, 08 May 2012 15:08:57 +0200
+
 signon (9.22-3) unstable; urgency=low
 
   * Bumping up the version
